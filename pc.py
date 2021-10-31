@@ -1,5 +1,6 @@
 import pyAgrum as gum
 import pyAgrum.lib.image as gimg
+import pyAgrum.lib.bn_vs_bn as bvb
 
 from utils import *
 
@@ -7,6 +8,7 @@ save_folder = "Results/"
 save_prefix = "learned_bn"
 save_steps = False
 save_final = not(save_steps)
+save_compare = True
 
 class PC():
     """
@@ -14,6 +16,7 @@ class PC():
     """
     def __init__(self):
         self.graph = gum.MixedGraph()
+        self.learned_bn = None
     
     @save_result(save_prefix + "_0.png", save=save_steps)
     def _init_graph(self, bn):
@@ -88,12 +91,12 @@ class PC():
                         # No v-structure added
                         for z in self.graph.neighbours(y):
                             if self.graph.existsArc(x, z) and self.graph.existsEdge(z, y) is True:
-                                edge_to_arc(graph, z, y)
+                                edge_to_arc(self.graph, z, y)
                                 was_oriented = True
                             
                     elif self.graph.existsEdge(x, y) is True and self.graph.hasDirectedPath(x, y):
                         # No cycle
-                        edge_to_arc(graph, x, y)
+                        edge_to_arc(self.graph, x, y)
                         was_oriented = True
 
         return {"graph":self.graph}
@@ -129,10 +132,23 @@ class PC():
         print("Wrapping up the orientations..")
         self._wrap_up_learning()
 
+        self.learned_bn = graph_to_bn(self.graph)
+
         return {"graph":self.graph}
 
+    @save_result("comparated_bn.png", save=save_compare)
+    def compare_learned_to_bn(self, bn):
+        if self.learned_bn is None: return
+
+        comparator = bvb.GraphicalBNComparator(bn, self.learned_bn)
+
+        return {"graph":comparator.dotDiff(), "hamming":comparator.hamming(), "skeletonScores":comparator.skeletonScores()}
+
 if __name__ == "__main__":
-    bn, lea = generate_bn_and_csv().values()
+    bn, learner = generate_bn_and_csv(n_data=10000).values()
 
     pc = PC()
-    pc.learn(bn, lea)
+    pc.learn(bn, learner)
+
+    _, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
+    print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))

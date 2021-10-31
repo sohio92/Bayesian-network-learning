@@ -1,0 +1,3 @@
+pyAgrum==0.22.2
+pydot==1.4.2
+pydotplus==2.0.2
