@@ -20,6 +20,7 @@ class PC():
     
     @save_result(save_prefix + "_0.png", save=save_steps)
     def _init_graph(self, bn):
+        self.graph.clear()
         for n in bn.nodes():
             self.graph.addNodeWithId(n)
 
@@ -68,6 +69,8 @@ class PC():
     def _orient_edges(self, SeptSet_xy):
         """
         Phase 2: orient the skeleton's edges
+
+        Note : APPARENTLY STILL A WAY TO MAKE DIRECTED CYCLES (RARE)
         """
         # V-structures
         for z in self.graph.nodes():
