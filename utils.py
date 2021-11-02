@@ -4,6 +4,8 @@ import pyAgrum as gum
 import pyAgrum.lib.image as gimg
 
 def save_graph(graph, filename, folder):
+    if graph is None:   return
+
     if type(graph) == pydotplus.graphviz.Dot:
         graph.write(folder + filename, format="png")
     else:

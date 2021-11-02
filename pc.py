@@ -1,6 +1,7 @@
 import pyAgrum as gum
 import pyAgrum.lib.image as gimg
 import pyAgrum.lib.bn_vs_bn as bvb
+import itertools
 
 from utils import *
 
@@ -42,27 +43,48 @@ class PC():
             for x in graph.nodes():
                 if len(graph.neighbours(x)) > d:    return True
             return False
-        
-        d = 0
-        SeptSet_xy = {} # Z for every pair X, Y
-        while has_more_neighbours(self.graph, d) is True:
-            for x in self.graph.nodes():
-                if len(self.graph.neighbours(x)) >= d + 1:
-                    for y in self.graph.neighbours(x):
-                        # Get all the d-sets of the neighbours of x
-                        if d == 0:  new_neigh = [[]]
-                        else:
-                            new_neigh = [i for i in self.graph.neighbours(x) if i != y]
-                            new_neigh = [new_neigh[i:i+d] for i in range(0, len(self.graph.neighbours(x)), d)]
-                        
-                        # Independance test, knowing the neighbours
-                        for z in new_neigh:
-                            if is_independant(learner, x, y, z) is True:
-                                self.graph.eraseEdge(x,y)
-                                if (x,y) in SeptSet_xy.keys():  SeptSet_xy[(x,y)] += z
-                                else:   SeptSet_xy[(x,y)] = z
 
+        d = 0
+        SeptSet_xy = {}  # Z for every pair X, Y
+        while has_more_neighbours(self.graph, d):
+            for X, Y in self.graph.edges():
+                adj_X_excl_Y = self.graph.neighbours(X).copy()
+                adj_X_excl_Y.remove(Y)
+
+                if len(adj_X_excl_Y) >= d:
+                    # Get all the d-sets of the neighbours of x
+                    for Z in itertools.combinations(adj_X_excl_Y, d):
+                        # Independance test, knowing the neighbours
+                        if is_independant(learner, X, Y, Z):
+                            self.graph.eraseEdge(X, Y)
+
+                            if (X, Y) in SeptSet_xy.keys(): SeptSet_xy[(X, Y)] += Z
+                            else:   SeptSet_xy[(X, Y)] = Z
+                            
+                            break
             d += 1
+
+        # d = 0
+        # SeptSet_xy = {} # Z for every pair X, Y
+        # while has_more_neighbours(self.graph, d) is True:
+        #     for x in self.graph.nodes():
+        #         if len(self.graph.neighbours(x)) >= d + 1:
+        #             for y in self.graph.neighbours(x):
+        #                 # Get all the d-sets of the neighbours of x
+        #                 if d == 0:  new_neigh = [[]]
+        #                 else:
+        #                     new_neigh = [i for i in self.graph.neighbours(x) if i != y]
+        #                     new_neigh = [new_neigh[i:i+d] for i in range(0, len(self.graph.neighbours(x)), d)]
+                        
+        #                 # Independance test, knowing the neighbours
+        #                 for z in new_neigh:
+        #                     if is_independant(learner, x, y, z) is True:
+        #                         self.graph.eraseEdge(x,y)
+        #                         if (x,y) in SeptSet_xy.keys():  SeptSet_xy[(x,y)] += z
+        #                         else:   SeptSet_xy[(x,y)] = z
+
+        #     d += 1
+
         return {"graph":self.graph, "SeptSet_xy":SeptSet_xy}
 
     @save_result(save_prefix + "_2.png", save=save_steps)
@@ -134,9 +156,12 @@ class PC():
 
         print("Wrapping up the orientations..")
         self._wrap_up_learning()
-
-        self.learned_bn = graph_to_bn(self.graph)
-
+        
+        try:
+            self.learned_bn = graph_to_bn(self.graph)
+        except:
+            print("Learning failed, learned BN contains cycles.")
+            
         return {"graph":self.graph}
 
     @save_result("comparated_bn.png", save=save_compare)
