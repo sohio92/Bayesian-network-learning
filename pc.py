@@ -144,39 +144,37 @@ class PC():
         return {"graph":self.graph}
     
     @save_result(save_prefix + "_final.png", save=save_final)
-    def learn(self, bn, learner):
-        print("Initializing the graph..")
+    def learn(self, bn, learner, verbose=True):
+        if verbose is True: print("Initializing the graph..")
         self._init_graph(bn)
 
-        print("Learning the skeleton..")
+        if verbose is True: print("Learning the skeleton..")
         SeptSet_xy = self._learn_skeleton(learner)["SeptSet_xy"]
 
-        print("Orienting the graph's edges..")
+        if verbose is True: print("Orienting the graph's edges..")
         self._orient_edges(SeptSet_xy)
 
-        print("Wrapping up the orientations..")
+        if verbose is True: print("Wrapping up the orientations..")
         self._wrap_up_learning()
         
         try:
             self.learned_bn = graph_to_bn(self.graph)
         except:
-            print("Learning failed, learned BN contains cycles.")
-            
+            raise RuntimeError("Learning failed, learned BN contains cycles.")
+
         return {"graph":self.graph}
 
     @save_result("comparated_bn.png", save=save_compare)
     def compare_learned_to_bn(self, bn):
-        if self.learned_bn is None: return
+        if self.learned_bn is None: return {"graph":None, "hamming":None, "skeletonScores":None}
 
         comparator = bvb.GraphicalBNComparator(bn, self.learned_bn)
 
         return {"graph":comparator.dotDiff(), "hamming":comparator.hamming(), "skeletonScores":comparator.skeletonScores()}
+    
+    def reset(self):
+        self.__init__()
 
 if __name__ == "__main__":
-    bn, learner = generate_bn_and_csv(n_data=10000).values()
-
     pc = PC()
-    pc.learn(bn, learner)
-
-    _, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
-    print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
+    print("\nProportion of failed learnings: {}%".format(round(test_robustness(pc) * 100, 3)))
