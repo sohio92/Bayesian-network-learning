@@ -21,12 +21,13 @@ def save_result(filename, save=True, folder="Results/"):
         return inner
     return decorator
 
-@save_result("generated_bn.png")
 def generate_bn_and_csv(n_nodes=10, n_arcs=12, n_modmax=4, n_data=1000, folder="Results/", name="sampled_bn.csv"):
     generator = gum.BNGenerator()
     bn = generator.generate(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax)
 
     gum.generateCSV(bn,name_out=folder+name, n=n_data, show_progress=False, with_labels=False)
+    save_graph(bn, "generated_bn.png", folder)
+
     return {"graph":bn, "learner":gum.BNLearner(folder + name)}
 
 def is_independant(learner, x, y, z=[]):
@@ -73,6 +74,7 @@ def test_robustness(algorithm, max_tries=100, n_nodes=10, n_arcs=12, n_modmax=4,
         if verbose is True: print("Testing robustness: {}/{}\t".format(_ + 1, max_tries), end="\r")
     
     os.remove(folder + "sampled_bn.csv")
+    os.remove(folder + "generated_bn.png")
 
     try:
         os.rmdir(folder)

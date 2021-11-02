@@ -45,7 +45,7 @@ class PC():
             return False
 
         d = 0
-        SeptSet_xy = {}  # Z for every pair X, Y
+        SeptSet_xy = {tuple(sorted(edge)):[] for edge in self.graph.edges()}  # Z for every pair X, Y (sorted)
         while has_more_neighbours(self.graph, d):
             for X, Y in self.graph.edges():
                 adj_X_excl_Y = self.graph.neighbours(X).copy()
@@ -58,33 +58,11 @@ class PC():
                         if is_independant(learner, X, Y, Z):
                             self.graph.eraseEdge(X, Y)
 
-                            if (X, Y) in SeptSet_xy.keys(): SeptSet_xy[(X, Y)] += Z
-                            else:   SeptSet_xy[(X, Y)] = Z
+                            SeptSet_xy[tuple(sorted((X, Y)))] += Z
                             
                             # break
                             
             d += 1
-
-        # d = 0
-        # SeptSet_xy = {} # Z for every pair X, Y
-        # while has_more_neighbours(self.graph, d) is True:
-        #     for x in self.graph.nodes():
-        #         if len(self.graph.neighbours(x)) >= d + 1:
-        #             for y in self.graph.neighbours(x):
-        #                 # Get all the d-sets of the neighbours of x
-        #                 if d == 0:  new_neigh = [[]]
-        #                 else:
-        #                     new_neigh = [i for i in self.graph.neighbours(x) if i != y]
-        #                     new_neigh = [new_neigh[i:i+d] for i in range(0, len(self.graph.neighbours(x)), d)]
-                        
-        #                 # Independance test, knowing the neighbours
-        #                 for z in new_neigh:
-        #                     if is_independant(learner, x, y, z) is True:
-        #                         self.graph.eraseEdge(x,y)
-        #                         if (x,y) in SeptSet_xy.keys():  SeptSet_xy[(x,y)] += z
-        #                         else:   SeptSet_xy[(x,y)] = z
-
-        #     d += 1
 
         return {"graph":self.graph, "SeptSet_xy":SeptSet_xy}
 
@@ -92,8 +70,6 @@ class PC():
     def _orient_edges(self, SeptSet_xy):
         """
         Phase 2: orient the skeleton's edges
-
-        Note : APPARENTLY STILL A WAY TO MAKE DIRECTED CYCLES (RARE)
         """
         # V-structures
         for z in self.graph.nodes():
@@ -103,7 +79,7 @@ class PC():
                     x = neigh[i]
                     if self.graph.existsEdge(x, y) is False:
                         # Unshielded triple
-                        if (x,y) in SeptSet_xy.keys() and z not in SeptSet_xy[(x,y)]:
+                        if z not in SeptSet_xy[tuple(sorted((x, y)))]:
                             edge_to_arc(self.graph, x, z)
                             edge_to_arc(self.graph, y, z)
 
