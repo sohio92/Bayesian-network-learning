@@ -8,8 +8,8 @@ from utils import *
 save_folder = "Results/"
 save_prefix = "learned_bn"
 save_steps = False
-save_final = not(save_steps)
-save_compare = True
+save_final = False
+save_compare = False
 
 class PC():
     """
@@ -61,7 +61,8 @@ class PC():
                             if (X, Y) in SeptSet_xy.keys(): SeptSet_xy[(X, Y)] += Z
                             else:   SeptSet_xy[(X, Y)] = Z
                             
-                            break
+                            # break
+                            
             d += 1
 
         # d = 0
@@ -145,16 +146,16 @@ class PC():
     
     @save_result(save_prefix + "_final.png", save=save_final)
     def learn(self, bn, learner, verbose=True):
-        if verbose is True: print("Initializing the graph..")
+        if verbose is True: print("Initializing the graph..", end='\r')
         self._init_graph(bn)
 
-        if verbose is True: print("Learning the skeleton..")
+        if verbose is True: print("Learning the skeleton..", end='\r')
         SeptSet_xy = self._learn_skeleton(learner)["SeptSet_xy"]
 
-        if verbose is True: print("Orienting the graph's edges..")
+        if verbose is True: print("Orienting the graph's edges..", end='\r')
         self._orient_edges(SeptSet_xy)
 
-        if verbose is True: print("Wrapping up the orientations..")
+        if verbose is True: print("Wrapping up the orientations..", end='\r')
         self._wrap_up_learning()
         
         try:
@@ -176,5 +177,11 @@ class PC():
         self.__init__()
 
 if __name__ == "__main__":
+    bn, learner = generate_bn_and_csv().values()
     pc = PC()
-    print("\nProportion of failed learnings: {}%".format(round(test_robustness(pc) * 100, 3)))
+
+    pc.learn(bn, learner)
+    _, hamming, skeleton_scores = pc.compare_learned_to_bn(bn).values()
+
+    print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))
+    print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC) * 100, 3)))

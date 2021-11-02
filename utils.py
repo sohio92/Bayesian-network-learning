@@ -58,17 +58,19 @@ def test_robustness(algorithm, max_tries=100, n_nodes=10, n_arcs=12, n_modmax=4,
     except FileExistsError:
         pass
     
+    algo_obj = algorithm()
+
     compteur = 0
     for _ in range(max_tries):
         bn, learner = generate_bn_and_csv(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax, n_data=n_data, folder=folder).values()
 
         try:
-            algorithm.learn(bn, learner, verbose=False)
+            algo_obj.learn(bn, learner, verbose=False)
         except RuntimeError:
             compteur += 1
         
-        algorithm.reset()
-        if verbose is True: print("Progress: {}/{}\t".format(_, max_tries), end="\r")
+        algo_obj.reset()
+        if verbose is True: print("Testing robustness: {}/{}\t".format(_ + 1, max_tries), end="\r")
     
     os.remove(folder + "sampled_bn.csv")
 
