@@ -1,0 +1,10 @@
+{
+    "parameters":
+        {
+            "save_folder": "Results/PC_stable/",
+            "save_prefix": "learned_bn",
+            "save_steps": false,
+            "save_final": true,
+            "save_compare": true
+        }
+}

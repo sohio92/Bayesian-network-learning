@@ -2,14 +2,18 @@ import pyAgrum as gum
 import pyAgrum.lib.image as gimg
 import pyAgrum.lib.bn_vs_bn as bvb
 import itertools
+import json
 
 from utils import *
 
-save_folder = "Results/"
-save_prefix = "learned_bn"
-save_steps = False
-save_final = False
-save_compare = False
+with open("parameters.json", 'r') as file:
+    parameters = json.load(file)["parameters"]
+
+save_folder = parameters["save_folder"]
+save_prefix = parameters["save_prefix"]
+save_steps = parameters["save_steps"]
+save_final = parameters["save_final"]
+save_compare = parameters["save_compare"]
 
 class PC():
     """
@@ -19,7 +23,7 @@ class PC():
         self.graph = gum.MixedGraph()
         self.learned_bn = None
     
-    @save_result(save_prefix + "_0.png", save=save_steps)
+    @save_result(save_prefix + "_0.png", save=save_steps, folder=save_folder)
     def _init_graph(self, bn):
         self.graph.clear()
         for n in bn.nodes():
@@ -31,7 +35,7 @@ class PC():
         
         return {"graph":self.graph}
     
-    @save_result(save_prefix + "_1.png", save=save_steps)
+    @save_result(save_prefix + "_1.png", save=save_steps, folder=save_folder)
     def _learn_skeleton(self, learner):
         """
         Phase 1: learn the skeleton
@@ -66,7 +70,7 @@ class PC():
 
         return {"graph":self.graph, "SeptSet_xy":SeptSet_xy}
 
-    @save_result(save_prefix + "_2.png", save=save_steps)
+    @save_result(save_prefix + "_2.png", save=save_steps, folder=save_folder)
     def _orient_edges(self, SeptSet_xy):
         """
         Phase 2: orient the skeleton's edges
@@ -103,7 +107,7 @@ class PC():
 
         return {"graph":self.graph}
 
-    @save_result(save_prefix + "_3.png", save=save_steps)
+    @save_result(save_prefix + "_3.png", save=save_steps, folder=save_folder)
     def _wrap_up_learning(self):
         """
         Phase 3: fill the other orientations without adding any v-structure
@@ -120,7 +124,7 @@ class PC():
 
         return {"graph":self.graph}
     
-    @save_result(save_prefix + "_final.png", save=save_final)
+    @save_result(save_prefix + "_final.png", save=save_final, folder=save_folder)
     def learn(self, bn, learner, verbose=True):
         if verbose is True: print("Initializing the graph..", end='\r')
         self._init_graph(bn)
@@ -141,7 +145,7 @@ class PC():
 
         return {"graph":self.graph}
 
-    @save_result("comparated_bn.png", save=save_compare)
+    @save_result("comparated_bn.png", save=save_compare, folder=save_folder)
     def compare_learned_to_bn(self, bn):
         if self.learned_bn is None: return {"graph":None, "hamming":None, "skeletonScores":None}
 
@@ -153,7 +157,7 @@ class PC():
         self.__init__()
 
 if __name__ == "__main__":
-    bn, learner = generate_bn_and_csv().values()
+    bn, learner = generate_bn_and_csv(folder=save_folder).values()
     pc = PC()
 
     pc.learn(bn, learner)
