@@ -30,21 +30,29 @@ class PC_stable(PC):
             return False
 
         d = 0
+
 		SeptSet_xy = {} # Z for every pair X, Y
 		X_Y_pairs = list(combinations(self.graph.nodes(), 2))
 		for X,Y in X_Y_pairs:
 				SeptSet_xy[(X,Y)] = []
+
 		while has_more_neighbours(self.graph, d):
 			for X,Y in self.graph.edges():
 				adj_X_excl_Y = self.graph.neighbours(X).copy()
 				adj_X_excl_Y.remove(Y)
+
 				if len(adj_X_excl_Y) >= d:
+					# Get all the d-sets of the neighbours of X
 					for Z in list(combinations(adj_X_excl_Y, d)):
+						# Independance test, knowing the neighbours
 						if is_independant(learner, X, Y, Z):
 							self.graph.eraseEdge(X,Y)
+
 							SeptSet_xy[tuple(sorted((X,Y)))].append([Z])
 							break
-                        if X in self.graph.neighbours(Y):   break
+
+                        if X in self.graph.neighbours(Y):
+                            break
 
 			d += 1
 

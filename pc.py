@@ -45,18 +45,24 @@ class PC():
 			return False
 
 		d = 0
+		
 		SeptSet_xy = {} # Z for every pair X, Y
 		X_Y_pairs = list(combinations(self.graph.nodes(), 2))
 		for X,Y in X_Y_pairs:
 				SeptSet_xy[(X,Y)] = []
+
 		while has_more_neighbours(self.graph, d):
 			for X,Y in self.graph.edges():
 				adj_X_excl_Y = self.graph.neighbours(X).copy()
 				adj_X_excl_Y.remove(Y)
+
 				if len(adj_X_excl_Y) >= d:
+					# Get all the d-sets of the neighbours of X
 					for Z in list(combinations(adj_X_excl_Y, d)):
+						# Independance test, knowing the neighbours
 						if is_independant(learner, X, Y, Z):
 							self.graph.eraseEdge(X,Y)
+
 							SeptSet_xy[tuple(sorted((X,Y)))].append([Z])
 							break
 
@@ -113,23 +119,37 @@ class PC():
 		Note : APPARENTLY STILL A WAY TO MAKE DIRECTED CYCLES (RARE)
 		"""
 		# V-structures
+
+		# Simple way to find unshielded triples:
+		# for any node Z, all the triples X, Z, Y such that X and Y are neighbours
+		# of Z, are unshielded triples.
 		for Z in self.graph.nodes():
 			for X, Y in list(combinations(self.graph.neighbours(Z), 2)):
 				if Z not in SeptSet_xy[tuple(sorted((X, Y)))]:
+					#R1 rule
 					edge_to_arc(self.graph, X, Z)
 					edge_to_arc(self.graph, Y, Z)
 
 
 		was_oriented = True # Until no edge can be oriented
-		nb_to_orient = len(self.graph.edges()) #early_stopping
+		nb_to_orient = len(self.graph.edges()) # Early_stopping
+
 		while was_oriented and nb_to_orient > 0:
 			was_oriented = False
-			for X,Y in SeptSet_xy.keys():
-				if nb_to_orient == 0:
+
+			for X,Y in SeptSet_xy.keys(): # For every X, Y pairs of nodes
+
+				if nb_to_orient == 0: # If there are no more edges (only arcs) we stop
 					break
-				if not self.graph.existsEdge(X,Y):
+
+				if not self.graph.existsEdge(X,Y): # If X and Y are not neighbours
+
 					shared_neighbours = self.graph.neighbours(X).intersection(self.graph.neighbours(Y))
+
+					# For all unshielded triples and non fully-oriented v-structures
 					for Z in shared_neighbours:
+
+						# R2 rule
 						if self.graph.existsArc(X,Z) and self.graph.existsEdge(Z,Y):
 							edge_to_arc(self.graph, Z, Y)
 							nb_to_orient -= 1
@@ -137,7 +157,10 @@ class PC():
 							if nb_to_orient == 0:
 								break
 				else:
+					# If there is a cycle going trhough X and Y
 					if self.graph.existsEdge(X,Y) and self.graph.hasDirectedPath(X, Y):
+
+						#R3 rule
 						edge_to_arc(self.graph, X, Y)
 						nb_to_orient -= 1
 						was_oriented = True
