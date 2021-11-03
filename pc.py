@@ -51,12 +51,10 @@ class PC():
 				SeptSet_xy[(X,Y)] = []
 		while has_more_neighbours(self.graph, d):
 			for X,Y in self.graph.edges():
-				adj_X = self.graph.neighbours(X).copy()
-				adj_X.remove(Y)
-				adj_X_excl_Y = adj_X
+				adj_X_excl_Y = self.graph.neighbours(X).copy()
+				adj_X_excl_Y.remove(Y)
 				if len(adj_X_excl_Y) >= d:
-					all_Z_size_d = list(combinations(adj_X_excl_Y, d))
-					for Z in all_Z_size_d:
+					for Z in list(combinations(adj_X_excl_Y, d)):
 						if is_independant(learner, X, Y, Z):
 							self.graph.eraseEdge(X,Y)
 							SeptSet_xy[tuple(sorted((X,Y)))].append([Z])
