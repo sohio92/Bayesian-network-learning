@@ -49,7 +49,7 @@ class PC():
 		SeptSet_xy = {} # Z for every pair X, Y
 		X_Y_pairs = list(combinations(self.graph.nodes(), 2))
 		for X,Y in X_Y_pairs:
-				SeptSet_xy[(X,Y)] = []
+				SeptSet_xy[(X,Y)] = [] #list of tuples
 
 		while has_more_neighbours(self.graph, d):
 			for X,Y in self.graph.edges():
@@ -63,7 +63,7 @@ class PC():
 						if is_independant(learner, X, Y, Z):
 							self.graph.eraseEdge(X,Y)
 
-							SeptSet_xy[tuple(sorted((X,Y)))].append([Z])
+							SeptSet_xy[tuple(sorted((X,Y)))].append(Z)
 							break
 
 			d += 1

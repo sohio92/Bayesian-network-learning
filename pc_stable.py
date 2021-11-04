@@ -48,7 +48,7 @@ class PC_stable(PC):
 						if is_independant(learner, X, Y, Z):
 							self.graph.eraseEdge(X,Y)
 
-							SeptSet_xy[tuple(sorted((X,Y)))].append([Z])
+							SeptSet_xy[tuple(sorted((X,Y)))].append(Z)
 							break
 
 						if X in self.graph.neighbours(Y):
