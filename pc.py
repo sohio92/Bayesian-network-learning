@@ -45,7 +45,7 @@ class PC():
 			return False
 
 		d = 0
-		
+
 		SeptSet_xy = {} # Z for every pair X, Y
 		X_Y_pairs = list(combinations(self.graph.nodes(), 2))
 		for X,Y in X_Y_pairs:
