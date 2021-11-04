@@ -1,5 +1,5 @@
 import json
-import itertools
+from itertools import combinations
 
 from pc import PC
 from utils import *
@@ -34,7 +34,7 @@ class PC_stable(PC):
 		SeptSet_xy = {} # Z for every pair X, Y
 		X_Y_pairs = list(combinations(self.graph.nodes(), 2))
 		for X,Y in X_Y_pairs:
-				SeptSet_xy[(X,Y)] = []
+				SeptSet_xy[(X,Y)] = set()
 
 		while has_more_neighbours(self.graph, d):
 			for X,Y in self.graph.edges():
@@ -48,7 +48,7 @@ class PC_stable(PC):
 						if is_independant(learner, X, Y, Z):
 							self.graph.eraseEdge(X,Y)
 
-							SeptSet_xy[tuple(sorted((X,Y)))].append(Z)
+							SeptSet_xy[tuple(sorted((X,Y)))].add(Z)
 							break
 
 						if X in self.graph.neighbours(Y):
@@ -67,4 +67,4 @@ if __name__ == "__main__":
 	_, hamming, skeleton_scores = pc_stable.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))
-	print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_stable) * 100, 3)))
+	# print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_stable) * 100, 3)))
