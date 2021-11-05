@@ -17,6 +17,7 @@ class PC_stable(PC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
+    @save_result(save_prefix + "_1.png", save=save_steps, folder=save_folder)
     def _learn_skeleton(self, learner):
         """
         Phase 1: learn the skeleton
