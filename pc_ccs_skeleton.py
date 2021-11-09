@@ -29,7 +29,7 @@ class PC_ccs_skeleton(PC_ccs):
 		loop_detected = False
 		while not loop_detected:
 			k += 1
-			G_k= self.NewStep1(G_0, G_ks[k-1], learner)
+			G_k, SeptSet_xy = self.NewStep1(G_0, G_ks[k-1], learner)
 			for n in range(len(G_ks)-1 , 0 , -1):
 				if G_ks[n] == G_k:
 					loop_detected = True
@@ -41,6 +41,7 @@ class PC_ccs_skeleton(PC_ccs):
 			arcs = arcs.union(G_ks[j].arcs())
 
 		to_delete = set()
+
 		for arc in arcs:
 			print(arc)
 			if reversed(arc) in arcs:
@@ -48,9 +49,12 @@ class PC_ccs_skeleton(PC_ccs):
 				to_delete.add(reversed(arc))
 
 		try:
-			arcs.remove(to_delete)
+			for arc in to_delete:
+				arcs.remove(arc)
+			# arcs.remove(to_delete)
 		except KeyError:
 			print("no conflict in orientations")
+
 
 		for arc in arcs:
 			self.graph.addArc(arc[0], arc[1])
@@ -64,7 +68,7 @@ class PC_ccs_skeleton(PC_ccs):
 		self._init_graph(bn)
 
 		print("Learning ...")
-		self.algorithm3(learner)
+		self.algorithm4(learner)
 
 		print("Wrapping up the orientations..")
 		self._wrap_up_learning()
@@ -82,7 +86,7 @@ class PC_ccs_skeleton(PC_ccs):
 
 if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()
-	pc_ccs = PC_ccs()
+	pc_ccs = PC_ccs_skeleton()
 
 	pc_ccs.learn(bn, learner)
 	_, hamming, skeleton_scores = pc_ccs.compare_learned_to_bn(bn).values()

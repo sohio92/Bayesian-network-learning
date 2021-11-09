@@ -145,23 +145,24 @@ class PC():
 		return {"graph":self.graph}
 
 	@save_result(save_prefix + "_final.png", save=save_final)
-	def learn(self, bn, learner):
-		print("Initializing the graph..")
+	def learn(self, bn, learner, verbose=True):
+
+		if verbose is True: print("Initializing the graph..", end='\r')
 		self._init_graph(bn)
 
-		print("Learning the skeleton..")
+		if verbose is True: print("Learning the skeleton..", end='\r')
 		SeptSet_xy = self._learn_skeleton(learner)["SeptSet_xy"]
 
-		print("Orienting the graph's edges..")
+		if verbose is True: print("Orienting the graph's edges..", end='\r')
 		self._orient_edges(SeptSet_xy)
 
-		print("Wrapping up the orientations..")
+		if verbose is True: print("Wrapping up the orientations..", end='\r')
 		self._wrap_up_learning()
 
 		try:
 			self.learned_bn = graph_to_bn(self.graph)
 		except:
-			print("Learning failed, learned BN contains cycles.")
+			raise RuntimeError("Learning failed, learned BN contains cycles.")
 
 		return {"graph":self.graph}
 
@@ -172,6 +173,8 @@ class PC():
 		comparator = bvb.GraphicalBNComparator(bn, self.learned_bn)
 
 		return {"graph":comparator.dotDiff(), "hamming":comparator.hamming(), "skeletonScores":comparator.skeletonScores()}
+	def reset(self):
+		self.__init__()
 
 if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(n_data=10000).values()

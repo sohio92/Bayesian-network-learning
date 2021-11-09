@@ -155,44 +155,50 @@ class PC_ccs(PC_stable):
 			arcs = arcs.union(G_ks[j].arcs())
 
 		to_delete = set()
+
 		for arc in arcs:
-			print(arc)
+
 			if reversed(arc) in arcs:
 				to_delete.add(arc)
 				to_delete.add(reversed(arc))
 
 		try:
-			arcs.remove(to_delete)
+			for arc in to_delete:
+				arcs.remove(arc)
+			# arcs.remove(to_delete)
 		except KeyError:
 			print("no conflict in orientations")
 
+
 		for arc in arcs:
+			print(arc)
 			self.graph.addArc(arc[0], arc[1])
 
-		# ConsSeptSet_xy = {}
-		# for X,Y in self.graph.edges():
-		# 	adj_X_excl_Y = G_1.neighbours(X).copy()
-		# 	adj_X_excl_Y.remove(Y)
-		# 	adj_X_excl_Y_inter_consist_Z = adj_X_excl_Y.intersection(self.consistent_set( X, Y, adj_X_excl_Y, G_2))
-
-		return {"graph": self.graph} # , "SeptSet_xy": SeptSet_xy}
+		# TODO find "neighbours" equivalent when graph is directed
+		ConsSeptSet_xy = {}
+		for X,Y in self.graph.arcs():
+			adj_X_excl_Y = self.graph.neighbours(X).copy()
+			adj_X_excl_Y.remove(Y)
+			adj_X_excl_Y_inter_consist_Z = adj_X_excl_Y.intersection(self.consistent_set( X, Y, adj_X_excl_Y, self.graph))
+		return {"graph": self.graph, "SeptSet_xy": ConsSeptSet_xy}
 
 
 	@save_result(save_prefix + "_final.png", save=save_final)
-	def learn(self, bn, learner):
-		print("Initializing the graph..")
+	def learn(self, bn, learner, verbose=True):
+
+		if verbose is True: print("Initializing the graph..", end='\r')
 		self._init_graph(bn)
 
-		print("Learning ...")
+		if verbose is True: print("Learning..", end='\r')
 		self.algorithm3(learner)
 
-		print("Wrapping up the orientations..")
+		if verbose is True: print("Wrapping up the orientations..", end='\r')
 		self._wrap_up_learning()
 
 		try:
 			self.learned_bn = graph_to_bn(self.graph)
 		except:
-			print("Learning failed, learned BN contains cycles.")
+			raise RuntimeError("Learning failed, learned BN contains cycles.")
 
 		return {"graph":self.graph}
 
