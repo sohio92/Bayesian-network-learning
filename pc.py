@@ -1,26 +1,34 @@
+import json
 import pyAgrum as gum
 import pyAgrum.lib.image as gimg
 import pyAgrum.lib.bn_vs_bn as bvb
-from itertools import combinations
 
+import itertools
 from utils import *
 
-save_folder = "Results/"
-save_prefix = "learned_bn"
-save_steps = False
-save_final = not(save_steps)
-save_compare = True
+with open("parameters.json", 'r') as file:
+	parameters = json.load(file)["parameters"]
+
+save_folder = parameters["save_folder"]
+save_prefix = parameters["save_prefix"]
+save_steps = parameters["save_steps"]
+save_final = parameters["save_final"]
+save_compare = parameters["save_compare"]
 
 class PC():
 	"""
 	PC algorithm to learn a Bayesian Network
 	"""
-	def __init__(self):
+	def __init__(self, alpha=.05):
 		self.graph = gum.MixedGraph()
 		self.learned_bn = None
 
-	@save_result(save_prefix + "_0.png", save=save_steps)
+		self.alpha = alpha
+
 	def _init_graph(self, bn):
+		"""
+		Start the algorithm with a complete graph
+		"""
 		self.graph.clear()
 		for n in bn.nodes():
 			self.graph.addNodeWithId(n)
@@ -31,7 +39,6 @@ class PC():
 
 		return {"graph":self.graph}
 
-	@save_result(save_prefix + "_1.png", save=save_steps)
 	def _learn_skeleton(self, learner):
 		"""
 		Phase 1: learn the skeleton
@@ -45,116 +52,96 @@ class PC():
 			return False
 
 		d = 0
-
-		SeptSet_xy = {} # Z for every pair X, Y
-		X_Y_pairs = list(combinations(self.graph.nodes(), 2))
-		for X,Y in X_Y_pairs:
-				SeptSet_xy[(X,Y)] = set() #list of tuples
-
+		Sepset_xy = {tuple(sorted(xy)):set() for xy in itertools.combinations(self.graph.nodes(), 2)} # Z for every pair X, Y
 		while has_more_neighbours(self.graph, d):
 			for X,Y in self.graph.edges():
-				adj_X_excl_Y = self.graph.neighbours(X).copy()
-				adj_X_excl_Y.remove(Y)
+				adj_X_excl_Y = [neigh for neigh in self.graph.neighbours(X) if neigh != Y]
 
 				if len(adj_X_excl_Y) >= d:
 					# Get all the d-sets of the neighbours of X
-					for Z in list(combinations(adj_X_excl_Y, d)):
+					for Z in itertools.combinations(adj_X_excl_Y, d):
 						# Independance test, knowing the neighbours
-						if is_independant(learner, X, Y, Z):
+						if is_independant(learner, X, Y, Z, alpha=self.alpha):
 							self.graph.eraseEdge(X,Y)
 
-							SeptSet_xy[tuple(sorted((X,Y)))].add(Z)
+							Sepset_xy[tuple(sorted((X,Y)))].add(Z)
 							break
-
 			d += 1
 
-		return {"graph":self.graph, "SeptSet_xy":SeptSet_xy}
+		return {"graph":self.graph, "Sepset_xy":Sepset_xy}
 
-	@save_result(save_prefix + "_2.png", save=save_steps)
-	def _orient_edges(self, SeptSet_xy):
+	def _orient_edges(self, Sepset_xy, graph=None):
 		"""
 		Phase 2: orient the skeleton's edges
-
-		Note : APPARENTLY STILL A WAY TO MAKE DIRECTED CYCLES (RARE)
 		"""
+		if graph is None:	graph = self.graph
+		
 		# V-structures
 
 		# Simple way to find unshielded triples:
 		# for any node Z, all the triples X, Z, Y such that X and Y are neighbours
 		# of Z, are unshielded triples.
-		for Z in self.graph.nodes():
-			for X, Y in list(combinations(self.graph.neighbours(Z), 2)):
-				if Z not in SeptSet_xy[tuple(sorted((X, Y)))]:
+		for Z in graph.nodes():
+			for X, Y in itertools.combinations(graph.neighbours(Z), 2):
+				if Z not in Sepset_xy[tuple(sorted((X, Y)))]:
 					#R1 rule
-					edge_to_arc(self.graph, X, Z)
-					edge_to_arc(self.graph, Y, Z)
+					edge_to_arc(graph, X, Z)
+					edge_to_arc(graph, Y, Z)
 
 
 		was_oriented = True # Until no edge can be oriented
-		nb_to_orient = len(self.graph.edges()) # Early_stopping
-
-		while was_oriented and nb_to_orient > 0:
+		while was_oriented is True:
 			was_oriented = False
 
-			for X,Y in SeptSet_xy.keys(): # For every X, Y pairs of nodes
+			for X,Y in Sepset_xy.keys(): # For every X, Y pairs of nodes
+				if not graph.existsEdge(X,Y): # If X and Y are not neighbours
 
-				if nb_to_orient == 0: # If there are no more edges (only arcs) we stop
-					break
-
-				if not self.graph.existsEdge(X,Y): # If X and Y are not neighbours
-
-					shared_neighbours = self.graph.neighbours(X).intersection(self.graph.neighbours(Y))
+					shared_neighbours = graph.neighbours(X).intersection(graph.neighbours(Y))
 
 					# For all unshielded triples and non fully-oriented v-structures
 					for Z in shared_neighbours:
-
 						# R2 rule
-						if self.graph.existsArc(X,Z) and self.graph.existsEdge(Z,Y):
-							edge_to_arc(self.graph, Z, Y)
-							nb_to_orient -= 1
+						if graph.existsArc(X,Z) and graph.existsEdge(Z,Y):
+							edge_to_arc(graph, Z, Y)
 							was_oriented = True
-							if nb_to_orient == 0:
-								break
-				else:
+
+				elif graph.existsEdge(X,Y) and graph.hasDirectedPath(X, Y):
 					# If there is a cycle going trhough X and Y
-					if self.graph.existsEdge(X,Y) and self.graph.hasDirectedPath(X, Y):
 
-						#R3 rule
-						edge_to_arc(self.graph, X, Y)
-						nb_to_orient -= 1
-						was_oriented = True
+					#R3 rule
+					edge_to_arc(graph, X, Y)
+					was_oriented = True
 
+		return {"graph":graph}
 
-		return {"graph":self.graph}
-
-	@save_result(save_prefix + "_3.png", save=save_steps)
-	def _wrap_up_learning(self):
+	def _wrap_up_learning(self, graph=None):
 		"""
 		Phase 3: fill the other orientations without adding any v-structure
 		"""
-		for x, y in self.graph.edges():
-			self.graph.eraseEdge(x, y)
-			self.graph.addArc(y, x)
+		if graph is None:	graph = self.graph
 
-			for z in self.graph.neighbours(y):
-				if self.graph.existsArc(z, y):    break
+		for x, y in graph.edges():
+			graph.eraseEdge(x, y)
+			graph.addArc(y, x)
+
+			for z in graph.neighbours(y):
+				if graph.existsArc(z, y):    break
 			else:
-				self.graph.addArc(x, y)
-				self.graph.eraseArc(y, x)
+				graph.addArc(x, y)
+				graph.eraseArc(y, x)
 
-		return {"graph":self.graph}
+		return {"graph":graph}
 
-	@save_result(save_prefix + "_final.png", save=save_final)
 	def learn(self, bn, learner, verbose=True):
 
 		if verbose is True: print("Initializing the graph..", end='\r')
 		self._init_graph(bn)
 
 		if verbose is True: print("Learning the skeleton..", end='\r')
-		SeptSet_xy = self._learn_skeleton(learner)["SeptSet_xy"]
+		Sepset_xy = self._learn_skeleton(learner)["Sepset_xy"]
 
 		if verbose is True: print("Orienting the graph's edges..", end='\r')
-		self._orient_edges(SeptSet_xy)
+		self._orient_edges(Sepset_xy)
 
 		if verbose is True: print("Wrapping up the orientations..", end='\r')
 		self._wrap_up_learning()
@@ -166,13 +153,13 @@ class PC():
 
 		return {"graph":self.graph}
 
-	@save_result("comparated_bn.png", save=save_compare)
 	def compare_learned_to_bn(self, bn):
 		if self.learned_bn is None: return
 
 		comparator = bvb.GraphicalBNComparator(bn, self.learned_bn)
 
 		return {"graph":comparator.dotDiff(), "hamming":comparator.hamming(), "skeletonScores":comparator.skeletonScores()}
+
 	def reset(self):
 		self.__init__()
 
@@ -184,3 +171,5 @@ if __name__ == "__main__":
 
 	_, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
+
+	print("Robustesse : {}%".format(test_robustness(PC, max_tries=1000) * 100))

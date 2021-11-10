@@ -15,22 +15,16 @@ save_final = parameters["save_final"]
 save_compare = parameters["save_compare"]
 
 class PC_ccs(PC_stable):
+	"""
+	Sepset consistente PC algorithm (1st version, orientation consistency)
+	"""
+
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-	def consistent_set(self, X, Y, adj_X_excl_Y, G):
-		consistent_sep_Z = set()
-
-		for Z in adj_X_excl_Y:
-
-			if (G.mixedUnorientedPath(X, Y) != []) and (G.mixedUnorientedPath(Y, Z) != []):
-				consistent_sep_Z.add(Z)
-
-		return consistent_sep_Z
-
-	def NewStep1(self, G_1, G_2, learner):
+	def _learn_skeleton(self, G_1, G_2, learner):
 		"""
-		Phase 1: learn the skeleton
+		Phase 1: learn the skeleton of G1|G2, NewStep1
 		"""
 		def has_more_neighbours(graph, d):
 			"""
@@ -41,156 +35,65 @@ class PC_ccs(PC_stable):
 			return False
 
 		d = 0
-
-		SeptSet_xy = {} # Z for every pair X, Y
-		X_Y_pairs = list(combinations(G_1.nodes(), 2))
-		for X,Y in X_Y_pairs:
-				SeptSet_xy[(X,Y)] = set()
-
+		Sepset_xy = {tuple(sorted(xy)):set() for xy in itertools.combinations(self.graph.nodes(), 2)} # Z for every pair X, Y
 		while has_more_neighbours(G_1, d):
 			for X,Y in G_1.edges():
-				adj_X_excl_Y = G_1.neighbours(X).copy()
-				adj_X_excl_Y.remove(Y)
-				adj_X_excl_Y_inter_consist_Z = adj_X_excl_Y.intersection(self.consistent_set( X, Y, adj_X_excl_Y, G_2))
+				adj_X_excl_Y = set([neigh for neigh in G_1.neighbours(X) if neigh != Y])
+				adj_X_excl_Y_inter_consist_Z = adj_X_excl_Y.intersection(consistent_set(G_2, X, Y))
 
 				if len(adj_X_excl_Y_inter_consist_Z) >= d:
 					# Get all the d-sets of the neighbours of X
-					for Z in list(combinations(adj_X_excl_Y_inter_consist_Z, d)):
+					for Z in itertools.combinations(adj_X_excl_Y_inter_consist_Z, d):
 						# Independance test, knowing the neighbours
-						if is_independant(learner, X, Y, Z):
+						if is_independant(learner, X, Y, Z, alpha=self.alpha):
 							G_1.eraseEdge(X,Y)
 
-							SeptSet_xy[tuple(sorted((X,Y)))].add(Z)
+							Sepset_xy[tuple(sorted((X,Y)))].add(Z)
 							break
 
 						if X in G_1.neighbours(Y):
 							break
-
 			d += 1
 
+		return {"graph":G_1, "Sepset_xy":Sepset_xy}
 
-		return G_1, SeptSet_xy
-
-	def _orient_edges(self, G, SeptSet_xy):
+	def _S(self, G1, G2, learner):
 		"""
-		Phase 2: orient the skeleton's edges
-
-		Note : APPARENTLY STILL A WAY TO MAKE DIRECTED CYCLES (RARE)
+		Modified version of PC-stable, step1 of algorithm is replaced by NewStep1(G1|G2)
 		"""
-		# V-structures
+		_, Sepset_xy = self._learn_skeleton(G1, G2, learner).values()
+		G_k = self._wrap_up_learning(self._orient_edges(Sepset_xy, graph=G1)["graph"])["graph"]
 
-		# Simple way to find unshielded triples:
-		# for any node Z, all the triples X, Z, Y such that X and Y are neighbours
-		# of Z, are unshielded triples.
-		for Z in G.nodes():
-			for X, Y in list(combinations(G.neighbours(Z), 2)):
-				if Z not in SeptSet_xy[tuple(sorted((X, Y)))]:
-					#R1 rule
-					edge_to_arc(G, X, Z)
-					edge_to_arc(G, Y, Z)
+		return {"graph":G_k, "Sepset_xy":Sepset_xy}
 
-
-		was_oriented = True # Until no edge can be oriented
-		nb_to_orient = len(G.edges()) # Early_stopping
-
-		while was_oriented and nb_to_orient > 0:
-			was_oriented = False
-
-			for X,Y in SeptSet_xy.keys(): # For every X, Y pairs of nodes
-
-				if nb_to_orient == 0: # If there are no more edges (only arcs) we stop
-					break
-
-				if not G.existsEdge(X,Y): # If X and Y are not neighbours
-
-					shared_neighbours = G.neighbours(X).intersection(G.neighbours(Y))
-
-					# For all unshielded triples and non fully-oriented v-structures
-					for Z in shared_neighbours:
-
-						# R2 rule
-						if G.existsArc(X,Z) and G.existsEdge(Z,Y):
-							edge_to_arc(G, Z, Y)
-							nb_to_orient -= 1
-							was_oriented = True
-							if nb_to_orient == 0:
-								break
-				else:
-					# If there is a cycle going trhough X and Y
-					if G.existsEdge(X,Y) and G.hasDirectedPath(X, Y):
-
-						#R3 rule
-						edge_to_arc(G, X, Y)
-						nb_to_orient -= 1
-						was_oriented = True
-
-
-		return {"graph":G}
-
-	def S_k(self, G_0, G_kmin1, learner):
-		_, SeptSet_xy = self.NewStep1(G_0, G_kmin1, learner)
-		G_k = self._orient_edges(G_0, SeptSet_xy)["graph"]
-		return  G_k
-
-	def algorithm3(self, learner):
-		# Init
-		G_null = gum.MixedGraph()
-		G_c = self.graph
-		G_0 , _  = self.NewStep1(G_c, G_null, learner)#
-		k = 0
-		G_ks = [G_0]
-		loop_detected = False
-		while not loop_detected:
+	def _orientation_consistency(self, learner):
+		"""
+		Algorithm 3, consistent constraint-based algorithm through an iterative call of S
+		"""
+		k, G_k = 0, None
+		G_0, Sepset_xy_0 = self._learn_skeleton(self.graph, gum.MixedGraph(), learner).values()
+		list_G_k, list_Sepset_xy = [G_0], [Sepset_xy_0]
+		while any(other == G_k for other in list_G_k) is False:
 			k += 1
-			G_k = self.S_k(G_0, G_ks[k-1], learner)
-			for n in range(len(G_ks)-1 , 0 , -1):
-				if G_ks[n] == G_k:
-					loop_detected = True
+			G_k, Sepset_xy_k = self._S(G_0, list_G_k[-1], learner).values()
 
-					break
-			G_ks.append(G_k)
-		arcs = set()
+			list_G_k.append(G_k)
+			list_Sepset_xy.append(Sepset_xy_k)
 
-		for j in range(k - n, len(G_ks)) :
-			arcs = arcs.union(G_ks[j].arcs())
+		# Discarding the conflicting orientations
+		for other in list_G_k[:-1]:
+			if other == G_k:	break
+			for arc in other.arcs():
+				edge_to_arc(self.graph, *arc, replace_conflicts=True)
 
-		to_delete = set()
+		return {"graph": self.graph, "list_Sepset_xy":list_Sepset_xy}
 
-		for arc in arcs:
-
-			if reversed(arc) in arcs:
-				to_delete.add(arc)
-				to_delete.add(reversed(arc))
-
-		try:
-			for arc in to_delete:
-				arcs.remove(arc)
-			# arcs.remove(to_delete)
-		except KeyError:
-			print("no conflict in orientations")
-
-
-		for arc in arcs:
-			print(arc)
-			self.graph.addArc(arc[0], arc[1])
-
-		# TODO find "neighbours" equivalent when graph is directed
-		ConsSeptSet_xy = {}
-		for X,Y in self.graph.arcs():
-			adj_X_excl_Y = self.graph.neighbours(X).copy()
-			adj_X_excl_Y.remove(Y)
-			adj_X_excl_Y_inter_consist_Z = adj_X_excl_Y.intersection(self.consistent_set( X, Y, adj_X_excl_Y, self.graph))
-		return {"graph": self.graph, "SeptSet_xy": ConsSeptSet_xy}
-
-
-	@save_result(save_prefix + "_final.png", save=save_final)
 	def learn(self, bn, learner, verbose=True):
-
 		if verbose is True: print("Initializing the graph..", end='\r')
 		self._init_graph(bn)
 
 		if verbose is True: print("Learning..", end='\r')
-		self.algorithm3(learner)
+		self._orientation_consistency(learner)
 
 		if verbose is True: print("Wrapping up the orientations..", end='\r')
 		self._wrap_up_learning()
@@ -201,10 +104,6 @@ class PC_ccs(PC_stable):
 			raise RuntimeError("Learning failed, learned BN contains cycles.")
 
 		return {"graph":self.graph}
-
-
-
-
 
 if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()

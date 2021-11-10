@@ -1,5 +1,5 @@
 import json
-from itertools import combinations
+import itertools
 
 from pc import PC
 from utils import *
@@ -14,12 +14,16 @@ save_final = parameters["save_final"]
 save_compare = parameters["save_compare"]
 
 class PC_stable(PC):
+	"""
+	Stable version of PC, minor change to learn_skeleton
+	"""
+
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
 	def _learn_skeleton(self, learner):
 		"""
-		Phase 1: learn the skeleton
+		Phase 1: learn the skeleton, PC stable
 		"""
 		def has_more_neighbours(graph, d):
 			"""
@@ -30,34 +34,24 @@ class PC_stable(PC):
 			return False
 
 		d = 0
-
-		SeptSet_xy = {} # Z for every pair X, Y
-		X_Y_pairs = list(combinations(self.graph.nodes(), 2))
-		for X,Y in X_Y_pairs:
-				SeptSet_xy[(X,Y)] = set()
-
+		Sepset_xy = {tuple(sorted(xy)):set() for xy in itertools.combinations(self.graph.nodes(), 2)} # Z for every pair X, Y
 		while has_more_neighbours(self.graph, d):
 			for X,Y in self.graph.edges():
-				adj_X_excl_Y = self.graph.neighbours(X).copy()
-				adj_X_excl_Y.remove(Y)
+				adj_X_excl_Y = [neigh for neigh in self.graph.neighbours(X) if neigh != Y]
 
 				if len(adj_X_excl_Y) >= d:
 					# Get all the d-sets of the neighbours of X
-					for Z in list(combinations(adj_X_excl_Y, d)):
+					for Z in itertools.combinations(adj_X_excl_Y, d):
 						# Independance test, knowing the neighbours
-						if is_independant(learner, X, Y, Z):
+						if is_independant(learner, X, Y, Z, alpha=self.alpha):
 							self.graph.eraseEdge(X,Y)
+							Sepset_xy[tuple(sorted((X,Y)))].add(Z)
 
-							SeptSet_xy[tuple(sorted((X,Y)))].add(Z)
+						if X not in self.graph.neighbours(Y):
 							break
-
-						if X in self.graph.neighbours(Y):
-							break
-
 			d += 1
 
-
-		return {"graph":self.graph, "SeptSet_xy":SeptSet_xy}
+		return {"graph":self.graph, "Sepset_xy":Sepset_xy}
 
 if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()

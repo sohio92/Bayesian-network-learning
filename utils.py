@@ -1,4 +1,6 @@
+import itertools
 import os
+
 import pydot
 import pydotplus
 import pyAgrum as gum
@@ -21,21 +23,55 @@ def save_result(filename, save=True, folder="Results/"):
         return inner
     return decorator
 
-def generate_bn_and_csv(n_nodes=10, n_arcs=12, n_modmax=4, n_data=1000, folder="Results/", name="sampled_bn.csv"):
+def generate_bn_and_csv(n_nodes=10, n_arcs=12, n_modmax=4, n_data=1000, save_generated=True, folder="Results/", name="sampled_bn.csv"):
     generator = gum.BNGenerator()
     bn = generator.generate(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax)
 
     gum.generateCSV(bn,name_out=folder+name, n=n_data, show_progress=False, with_labels=False)
-    save_graph(bn, "generated_bn.png", folder)
+    if save_generated is True: save_graph(bn, "generated_bn.png", folder)
 
     return {"graph":bn, "learner":gum.BNLearner(folder + name)}
 
-def is_independant(learner, x, y, z=[]):
-    return learner.chi2("n_"+str(x), "n_"+str(y), ["n_"+str(i) for i in z])[1] > .05
+def is_independant(learner, x, y, z=[], alpha=.05):
+    return learner.chi2("n_"+str(x), "n_"+str(y), ["n_"+str(i) for i in z])[1] > alpha
 
-def edge_to_arc(graph, x, y):
+def edge_to_arc(graph, x, y, replace_conflicts=False):
+    """
+    Replace an edge with an arc, replaces conflicting orientations if desired
+    """
+    if replace_conflicts is True:
+        graph.eraseArc(y, x)
+
     graph.eraseEdge(x, y)
     graph.addArc(x, y)
+
+def copy_mixed_graph(graph):
+    new_graph = gum.MixedGraph()
+
+    for node in graph.nodes():
+        new_graph.addNodeWithId(node)
+    
+    for edge in graph.edges():
+        new_graph.addEdge(*edge)
+    
+    for arc in graph.arcs():
+        new_graph.addArc(*arc)
+    
+    return new_graph
+
+def consistent_set(graph, X, Y):
+    """
+    Returns the consistent set given X and Y, the nodes such that there exists a path from X to Y passing through Z
+    """
+    other_graph = copy_mixed_graph(graph)
+    other_graph.eraseNode(X) # We don't want to go through X twice  
+
+    consistent_set = set()
+    for Z in [neigh for neigh in graph.adjacents(X) if neigh != Y]:
+        if len(other_graph.mixedUnorientedPath(Z, Y)) != 0:
+            consistent_set.add(Z)
+    
+    return consistent_set
 
 def graph_to_bn(graph):
     new_bn = gum.BayesNet()
@@ -63,7 +99,7 @@ def test_robustness(algorithm, max_tries=100, n_nodes=10, n_arcs=12, n_modmax=4,
 
     compteur = 0
     for _ in range(max_tries):
-        bn, learner = generate_bn_and_csv(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax, n_data=n_data, folder=folder).values()
+        bn, learner = generate_bn_and_csv(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax, n_data=n_data, save_generated=False).values()
 
         try:
             algo_obj.learn(bn, learner, verbose=False)
