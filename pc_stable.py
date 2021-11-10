@@ -53,6 +53,7 @@ class PC_stable(PC):
 
 		return {"graph":self.graph, "Sepset_xy":Sepset_xy}
 
+
 if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()
 	pc = PC()
