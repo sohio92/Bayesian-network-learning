@@ -35,6 +35,21 @@ def generate_bn_and_csv(n_nodes=10, n_arcs=12, n_modmax=4, n_data=1000, save_gen
 def is_independant(learner, x, y, z=[], alpha=.05):
     return learner.chi2("n_"+str(x), "n_"+str(y), ["n_"+str(i) for i in z])[1] > alpha
 
+def make_complete_graph(nodes):
+    """
+    Make complete graph from a given array of nodes
+    """
+    graph = gum.MixedGraph()
+
+    for n in nodes:
+        graph.addNodeWithId(n)
+
+    for x in graph.nodes():
+        for y in graph.nodes():
+            if x != y:  graph.addEdge(x,y)
+    
+    return graph
+
 def edge_to_arc(graph, x, y, replace_conflicts=False):
     """
     Replace an edge with an arc, replaces conflicting orientations if desired
@@ -58,6 +73,10 @@ def copy_mixed_graph(graph):
         new_graph.addArc(*arc)
     
     return new_graph
+
+def get_missing_edges(graph):
+    return [edge for edge in make_complete_graph(graph.nodes()).edges() if edge not in graph.edges()]
+
 
 def consistent_set(graph, X, Y):
     """

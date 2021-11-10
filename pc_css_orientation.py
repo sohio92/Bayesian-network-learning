@@ -72,13 +72,12 @@ class PC_ccs(PC_stable):
 		"""
 		k, G_k = 0, None
 		G_0, Sepset_xy_0 = self._learn_skeleton(self.graph, gum.MixedGraph(), learner).values()
-		list_G_k, list_Sepset_xy = [G_0], [Sepset_xy_0]
+		list_G_k = [G_0]
 		while any(other == G_k for other in list_G_k) is False:
 			k += 1
 			G_k, Sepset_xy_k = self._S(G_0, list_G_k[-1], learner).values()
 
 			list_G_k.append(G_k)
-			list_Sepset_xy.append(Sepset_xy_k)
 
 		# Discarding the conflicting orientations
 		for other in list_G_k[:-1]:
@@ -86,7 +85,7 @@ class PC_ccs(PC_stable):
 			for arc in other.arcs():
 				edge_to_arc(self.graph, *arc, replace_conflicts=True)
 
-		return {"graph": self.graph, "list_Sepset_xy":list_Sepset_xy}
+		return {"graph": self.graph, "Sepset_xy_0":Sepset_xy_0, "Sepset_xy_k":Sepset_xy_k}
 
 	def learn(self, bn, learner, verbose=True):
 		if verbose is True: print("Initializing the graph..", end='\r')

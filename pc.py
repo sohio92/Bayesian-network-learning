@@ -30,13 +30,7 @@ class PC():
 		Start the algorithm with a complete graph
 		"""
 		self.graph.clear()
-		for n in bn.nodes():
-			self.graph.addNodeWithId(n)
-
-		for x in self.graph.nodes():
-			for y in self.graph.nodes():
-				if x != y:  self.graph.addEdge(x,y)
-
+		self.graph = make_complete_graph(bn.nodes())
 		return {"graph":self.graph}
 
 	def _learn_skeleton(self, learner):

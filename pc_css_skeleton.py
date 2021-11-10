@@ -1,8 +1,6 @@
 import json
-from itertools import combinations
 
-
-from pc_ccs_orientation import PC_ccs
+from pc_css_orientation import PC_ccs
 from utils import *
 
 with open("parameters.json", 'r') as file:
@@ -22,21 +20,29 @@ class PC_ccs_skeleton(PC_ccs):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-	def _skeleton_consistency(self, list_Sepset_xy):
-		pass
+	def _skeleton_consistency(self, Sepset_xy_k):
+		for removed_edge in get_missing_edges(self.graph):
+			if Sepset_xy_k[tuple(sorted(removed_edge))] not in consistent_set(self.graph, *removed_edge) \
+				and Sepset_xy_k[tuple(sorted(removed_edge))] not in consistent_set(self.graph, *removed_edge[::-1]):
+				self.graph.addEdge(*removed_edge)
+		
+		return {"graph":self.graph}
 
 	def learn(self, bn, learner, verbose=True):
 		if verbose is True: print("Initializing the graph..")
 		self._init_graph(bn)
 
 		if verbose is True: print("Learning ...")
-		list_Sepset_xy = self._orientation_consistency(learner)["list_Sepset_xy"]
+		Sepset_xy_0, Sepset_xy_k = self._orientation_consistency(learner)["Sepset_xy_0"], self._orientation_consistency(learner)["Sepset_xy_k"]
 
 		if verbose is True: print("Orienting the graph's edges..", end='\r')
-		self._orient_edges(list_Sepset_xy)
+		self._orient_edges(Sepset_xy_0)
 
-		if verbose is True: print("Wrapping up the orientations..", end='\r')
+		if verbose is True: print("Propagating the the orientations..", end='\r')
 		self._wrap_up_learning()
+
+		if verbose is True: print("Final consistency check..", end='\r')
+		self._skeleton_consistency(Sepset_xy_k)
 
 		try:
 			self.learned_bn = graph_to_bn(self.graph)
