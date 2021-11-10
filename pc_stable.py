@@ -8,18 +8,14 @@ with open("parameters.json", 'r') as file:
 	parameters = json.load(file)["parameters"]
 
 save_folder = parameters["save_folder"]
-save_prefix = parameters["save_prefix"]
-save_steps = parameters["save_steps"]
-save_final = parameters["save_final"]
-save_compare = parameters["save_compare"]
 
 class PC_stable(PC):
 	"""
 	Stable version of PC, minor change to learn_skeleton
 	"""
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, *args, name="PC_stable", **kwargs):
+		super().__init__(*args, name=name, **kwargs)
 
 	def _learn_skeleton(self, learner):
 		"""
@@ -58,7 +54,7 @@ if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()
 	pc = PC()
 
-	pc.learn(bn, learner)
+	pc.learn(bn, learner, save_folder=save_folder)
 	_, hamming, skeleton_scores = pc.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))

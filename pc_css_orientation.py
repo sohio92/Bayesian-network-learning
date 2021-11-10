@@ -9,18 +9,14 @@ with open("parameters.json", 'r') as file:
 	parameters = json.load(file)["parameters"]
 
 save_folder = parameters["save_folder"]
-save_prefix = parameters["save_prefix"]
-save_steps = parameters["save_steps"]
-save_final = parameters["save_final"]
-save_compare = parameters["save_compare"]
 
 class PC_ccs(PC_stable):
 	"""
 	Sepset consistente PC algorithm (1st version, orientation consistency)
 	"""
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, *args, name="PC_CSS_Orientation", **kwargs):
+		super().__init__(*args, name=name, **kwargs)
 
 	def _learn_skeleton(self, G_1, G_2, learner):
 		"""
@@ -62,7 +58,7 @@ class PC_ccs(PC_stable):
 		Modified version of PC-stable, step1 of algorithm is replaced by NewStep1(G1|G2)
 		"""
 		_, Sepset_xy = self._learn_skeleton(G1, G2, learner).values()
-		G_k = self._wrap_up_learning(self._orient_edges(Sepset_xy, graph=G1)["graph"])["graph"]
+		G_k = self._propagate_orientations(self._orient_edges(Sepset_xy, graph=G1)["graph"])["graph"]
 
 		return {"graph":G_k, "Sepset_xy":Sepset_xy}
 
@@ -87,15 +83,14 @@ class PC_ccs(PC_stable):
 
 		return {"graph": self.graph, "Sepset_xy_0":Sepset_xy_0, "Sepset_xy_k":Sepset_xy_k}
 
-	def learn(self, bn, learner, verbose=True):
+	def learn(self, bn, learner, verbose=True, save_steps=False, save_final=True, save_folder="Results/"):
 		if verbose is True: print("Initializing the graph..", end='\r')
 		self._init_graph(bn)
+		if save_steps is True:	self.save_graph("init", folder=save_folder)
 
-		if verbose is True: print("Learning..", end='\r')
+		if verbose is True: print("Learning consistent orientations..", end='\r')
 		self._orientation_consistency(learner)
-
-		if verbose is True: print("Wrapping up the orientations..", end='\r')
-		self._wrap_up_learning()
+		if save_steps or save_final is True:	self.save_graph("final", folder=save_folder)
 
 		try:
 			self.learned_bn = graph_to_bn(self.graph)
@@ -108,7 +103,7 @@ if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()
 	pc_ccs = PC_ccs()
 
-	pc_ccs.learn(bn, learner)
+	pc_ccs.learn(bn, learner, save_folder=save_folder)
 	_, hamming, skeleton_scores = pc_ccs.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))

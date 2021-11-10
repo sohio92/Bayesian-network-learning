@@ -10,20 +10,17 @@ with open("parameters.json", 'r') as file:
 	parameters = json.load(file)["parameters"]
 
 save_folder = parameters["save_folder"]
-save_prefix = parameters["save_prefix"]
-save_steps = parameters["save_steps"]
-save_final = parameters["save_final"]
-save_compare = parameters["save_compare"]
 
 class PC():
 	"""
 	PC algorithm to learn a Bayesian Network
 	"""
-	def __init__(self, alpha=.05):
+	def __init__(self, alpha=.05, name="PC"):
 		self.graph = gum.MixedGraph()
 		self.learned_bn = None
 
 		self.alpha = alpha
+		self.name = name
 
 	def _init_graph(self, bn):
 		"""
@@ -108,7 +105,7 @@ class PC():
 
 		return {"graph":graph}
 
-	def _wrap_up_learning(self, graph=None):
+	def _propagate_orientations(self, graph=None):
 		"""
 		Phase 3: fill the other orientations without adding any v-structure
 		"""
@@ -126,19 +123,25 @@ class PC():
 
 		return {"graph":graph}
 
-	def learn(self, bn, learner, verbose=True):
+	def save_graph(self, suffix, folder="Results/"):
+		save_graph(self.graph, filename=self.name + "_" + suffix + ".png", folder=folder)
 
+	def learn(self, bn, learner, verbose=True, save_steps=False, save_final=True, save_folder="Results/"):
 		if verbose is True: print("Initializing the graph..", end='\r')
 		self._init_graph(bn)
+		if save_steps is True:	self.save_graph("init", folder=save_folder)
 
 		if verbose is True: print("Learning the skeleton..", end='\r')
 		Sepset_xy = self._learn_skeleton(learner)["Sepset_xy"]
+		if save_steps is True:	self.save_graph("skeleton", folder=save_folder)
 
 		if verbose is True: print("Orienting the graph's edges..", end='\r')
 		self._orient_edges(Sepset_xy)
+		if save_steps is True:	self.save_graph("oriented", folder=save_folder)
 
-		if verbose is True: print("Wrapping up the orientations..", end='\r')
-		self._wrap_up_learning()
+		if verbose is True: print("Propagating the orientations..", end='\r')
+		self._propagate_orientations()
+		if save_steps or save_final is True:	self.save_graph("final", folder=save_folder)
 
 		try:
 			self.learned_bn = graph_to_bn(self.graph)
@@ -147,11 +150,12 @@ class PC():
 
 		return {"graph":self.graph}
 
-	def compare_learned_to_bn(self, bn):
+	def compare_learned_to_bn(self, bn, save_comparison=True, folder="Results/"):
 		if self.learned_bn is None: return
 
 		comparator = bvb.GraphicalBNComparator(bn, self.learned_bn)
 
+		if save_comparison is True:	save_graph(comparator.dotDiff(), self.name + "_compared_bn.png", folder=folder)
 		return {"graph":comparator.dotDiff(), "hamming":comparator.hamming(), "skeletonScores":comparator.skeletonScores()}
 
 	def reset(self):
@@ -161,9 +165,9 @@ if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(n_data=10000).values()
 
 	pc = PC()
-	pc.learn(bn, learner)
+	pc.learn(bn, learner, save_folder=save_folder)
 
-	_, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
+	compared_graph, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
 
 	print("Robustesse : {}%".format(test_robustness(PC, max_tries=1000) * 100))
