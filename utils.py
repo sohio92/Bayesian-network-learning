@@ -118,10 +118,10 @@ def test_robustness(algorithm, max_tries=100, n_nodes=10, n_arcs=12, n_modmax=4,
 
     compteur = 0
     for _ in range(max_tries):
-        bn, learner = generate_bn_and_csv(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax, n_data=n_data, save_generated=False, save_final=False).values()
+        bn, learner = generate_bn_and_csv(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax, n_data=n_data, save_generated=False, folder=folder).values()
 
         try:
-            algo_obj.learn(bn, learner, verbose=False)
+            algo_obj.learn(bn, learner, verbose=False, save_final=False, save_steps=False)
         except RuntimeError:
             compteur += 1
         
@@ -129,7 +129,6 @@ def test_robustness(algorithm, max_tries=100, n_nodes=10, n_arcs=12, n_modmax=4,
         if verbose is True: print("Testing robustness: {}/{}\t".format(_ + 1, max_tries), end="\r")
     
     os.remove(folder + "sampled_bn.csv")
-    os.remove(folder + "generated_bn.png")
 
     try:
         os.rmdir(folder)

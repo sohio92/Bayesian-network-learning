@@ -24,7 +24,7 @@ class PC_ccs_skeleton(PC_ccs):
 		
 		return {"graph":self.graph}
 
-	def learn(self, bn, learner, verbose=True, save_steps=False, save_final=True, folder="Results/"):
+	def learn(self, bn, learner, verbose=True, save_steps=False, save_final=True, save_folder="Results/"):
 		if verbose is True: print("Initializing the graph..")
 		self._init_graph(bn)
 		if save_steps is True:	self.save_graph("init", folder=save_folder)
@@ -60,4 +60,4 @@ if __name__ == "__main__":
 	_, hamming, skeleton_scores = pc_ccs.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))
-	# print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs) * 100, 3)))
+	print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs) * 100, 3)))
