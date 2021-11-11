@@ -15,9 +15,12 @@ class PC():
 	"""
 	PC algorithm to learn a Bayesian Network
 	"""
-	def __init__(self, alpha=.05, name="PC"):
-		self.graph = gum.MixedGraph()
-		self.learned_bn = None
+	__slots__ = ('graph', 'learned_bn', 'alpha', 'name')
+	__slot_to_default = {"graph":lambda:gum.MixedGraph(), "learned_bn":lambda:None, "name":lambda:PC, "alpha":lambda:.05}
+
+	def __init__(self, alpha=.05, name="PC", graph=gum.MixedGraph(), learned_bn=None):
+		self.graph = graph
+		self.learned_bn = learned_bn
 
 		self.alpha = alpha
 		self.name = name
@@ -151,18 +154,24 @@ class PC():
 		return {"graph":self.graph}
 
 	def compare_learned_to_bn(self, bn, save_comparison=True, folder="Results/"):
-		if self.learned_bn is None: return
+		if self.learned_bn is None: return {"graph":None, "hamming":None, "skeletonScores":None}
 
 		comparator = bvb.GraphicalBNComparator(bn, self.learned_bn)
 
 		if save_comparison is True:	save_graph(comparator.dotDiff(), self.name + "_compared_bn.png", folder=folder)
 		return {"graph":comparator.dotDiff(), "hamming":comparator.hamming(), "skeletonScores":comparator.skeletonScores()}
 
-	def reset(self):
-		self.__init__()
+	def reset(self, given={}):
+		"""
+		Resets the algorithm with the given values, maybe faster than creating new object
+		"""
+		for slot in self.__slots__:
+			self.__setattr__(slot, self.__slot_to_default[slot]() if slot != 'name' else self.name)
+		for key, value in given.items():
+			self.__setattr__(key, value)
 
 if __name__ == "__main__":
-	bn, learner = generate_bn_and_csv(n_data=10000).values()
+	bn, learner = generate_bn_and_csv(n_data=1000).values()
 
 	pc = PC()
 	pc.learn(bn, learner, save_folder=save_folder)
@@ -170,4 +179,4 @@ if __name__ == "__main__":
 	compared_graph, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
 
-	print("Robustesse : {}%".format(test_robustness(PC, max_tries=1000) * 100))
+	print("Robustesse : {}%".format(test_robustness(PC, max_tries=100) * 100))

@@ -10,7 +10,7 @@ with open("parameters.json", 'r') as file:
 
 save_folder = parameters["save_folder"]
 
-class PC_ccs(PC_stable):
+class PC_ccs_orientation(PC_stable):
 	"""
 	Sepset consistente PC algorithm (1st version, orientation consistency)
 	"""
@@ -101,10 +101,10 @@ class PC_ccs(PC_stable):
 
 if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()
-	pc_ccs = PC_ccs()
+	pc_ccs = PC_ccs_orientation()
 
 	pc_ccs.learn(bn, learner, save_folder=save_folder)
 	_, hamming, skeleton_scores = pc_ccs.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))
-	# print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs) * 100, 3)))
+	# print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs_orientation) * 100, 3)))

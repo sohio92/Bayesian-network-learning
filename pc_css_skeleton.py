@@ -1,6 +1,6 @@
 import json
 
-from pc_css_orientation import PC_ccs
+from pc_css_orientation import PC_ccs_orientation
 from utils import *
 
 with open("parameters.json", 'r') as file:
@@ -8,7 +8,7 @@ with open("parameters.json", 'r') as file:
 
 save_folder = parameters["save_folder"]
 
-class PC_ccs_skeleton(PC_ccs):
+class PC_ccs_skeleton(PC_ccs_orientation):
 	"""
 	Sepset consistent PC algorithm (2nd version, skeleton consistency)
 	"""
@@ -60,4 +60,4 @@ if __name__ == "__main__":
 	_, hamming, skeleton_scores = pc_ccs.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))
-	print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs) * 100, 3)))
+	print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs_orientation) * 100, 3)))
