@@ -46,7 +46,7 @@ class PC_ccs_skeleton(PC_ccs_orientation):
 		if save_steps or save_final is True:	self.save_graph("final", folder=save_folder)
 
 		try:
-			self.learned_bn = graph_to_bn(self.graph)
+			self.learned_bn = graph_to_bn(self.graph, self.nb_values)
 		except:
 			raise RuntimeError("Learning failed, learned BN contains cycles.")
 

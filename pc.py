@@ -15,12 +15,14 @@ class PC():
 	"""
 	PC algorithm to learn a Bayesian Network
 	"""
-	__slots__ = ('graph', 'learned_bn', 'alpha', 'name')
+	__slots__ = ('graph', 'learned_bn', 'alpha', 'name', 'nb_values')
 	__slot_to_default = {"graph":lambda:gum.MixedGraph(), "learned_bn":lambda:None, "name":lambda:PC, "alpha":lambda:.05}
 
-	def __init__(self, alpha=.05, name="PC", graph=gum.MixedGraph(), learned_bn=None):
+	def __init__(self, alpha=.05, name="PC", graph=gum.MixedGraph(), learned_bn=None, nb_values=2):
 		self.graph = graph
 		self.learned_bn = learned_bn
+
+		self.nb_values = nb_values
 
 		self.alpha = alpha
 		self.name = name
@@ -147,7 +149,7 @@ class PC():
 		if save_steps or save_final is True:	self.save_graph("final", folder=save_folder)
 
 		try:
-			self.learned_bn = graph_to_bn(self.graph)
+			self.learned_bn = graph_to_bn(self.graph, nb_values=self.nb_values)
 		except:
 			raise RuntimeError("Learning failed, learned BN contains cycles.")
 
@@ -166,7 +168,9 @@ class PC():
 		Resets the algorithm with the given values, maybe faster than creating new object
 		"""
 		for slot in self.__slots__:
-			self.__setattr__(slot, self.__slot_to_default[slot]() if slot != 'name' else self.name)
+			if slot == "name" or slot == "nb_values":
+				continue
+			self.__setattr__(slot, self.__slot_to_default[slot]())
 		for key, value in given.items():
 			self.__setattr__(key, value)
 
@@ -179,4 +183,4 @@ if __name__ == "__main__":
 	compared_graph, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
 
-	print("Robustesse : {}%".format(test_robustness(PC, max_tries=100) * 100))
+	# print("Robustesse : {}%".format(test_robustness(PC, max_tries=100) * 100))

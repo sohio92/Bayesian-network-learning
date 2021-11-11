@@ -69,7 +69,7 @@ class Benchmark:
 
         if verbose is True: print("Saving generated BNs..")
         with lzma.open(folder+"/"+filename+".lzma", 'wb') as file:
-            pickle.dump([bn.toDot() for bn in self.bns], file)
+            pickle.dump([{"nodes":bn.nodes(), "arcs":bn.arcs()} for bn in self.bns], file)
     
     def load_bns(self, folder=None, filename=None, verbose=True):
         """
@@ -80,7 +80,12 @@ class Benchmark:
 
         if verbose is True: print("Loading generated BNs..")
         with lzma.open(folder+"/"+filename+".lzma", "rb") as file:
-            self.bns = [graph_to_bn(pydot.graph_from_dot_data(bn)[0]) for bn in pickle.load(file)]
+            for bn in pickle.load(file):
+                nodes, arcs = bn["nodes"], bn["arcs"]
+
+                self.bns.append(gum.BayesNet())
+                for n in nodes: self.bns[-1].add(gum.LabelizedVariable("n_"+str(n), "value?", self.nb_modmax))
+                for a in arcs:  self.bns[-1].addArc(*a)
 
         self.nb_networks = len(self.bns)
         self.nb_nodes = self.bns[0].size()
@@ -93,7 +98,7 @@ class Benchmark:
         Runs a performance test on a given algorithm
         """
         if alpha is None:   alpha = self.alpha_default
-        child = algorithm(alpha=alpha)
+        child = algorithm(alpha=alpha, nb_values=self.nb_modmax)
 
         times, scores = [], {"Hamming":[], "Skeleton":[]}
         for i in range(self.nb_networks):
@@ -131,10 +136,11 @@ class Benchmark:
 # benchmark_barley = Benchmark("Barley benchmark", nb_nodes=48, average_degree=84/48, nb_modmax=114005)
 
 if __name__ == "__main__":
-    a = Benchmark("test", nb_networks=5)
+    a = Benchmark("test")
     del a
     a = Benchmark("test", intialize=False)
     a.load_bns()
 
     times, scores = a.run_test().values()
     print(sum(times)/len(times))
+    print(scores)

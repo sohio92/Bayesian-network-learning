@@ -92,12 +92,12 @@ def consistent_set(graph, X, Y):
     
     return consistent_set
 
-def graph_to_bn(graph):
+def graph_to_bn(graph, nb_values=2):
     new_bn = gum.BayesNet()
     
     node_to_var = {}
     for x in graph.nodes():
-        new_var = new_bn.add(gum.LabelizedVariable("n_"+str(x), "is true?", 2))
+        new_var = new_bn.add(gum.LabelizedVariable("n_"+str(x), "value?", nb_values))
         node_to_var[x] = new_var
 
     for x, y in graph.arcs():
