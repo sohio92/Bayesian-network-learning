@@ -1,43 +1,72 @@
 import matplotlib.pyplot as plt
 
+from progress.bar import Bar
+
 from pc import PC
 from pc_stable import PC_stable
-from pc_css_orientation import PC_ccs_orientation
-from pc_css_skeleton import PC_ccs_skeleton
+from pc_ccs_orientation import PC_ccs_orientation
+from pc_ccs_skeleton import PC_ccs_skeleton
 
 from benchmark import Benchmark
 
 from utils import *
 
-def run(benchmark, algorithm=PC):
-    return unpack_results(benchmark.run_test(algorithm=algorithm))
-
 def save(content, filename):
+    """Saves the results in a file"""
     with lzma.open(filename+".lzma", 'wb') as file:
         pickle.dump(content, file)
 
+
+def run(benchmark, algorithm=PC, bar=None):
+    """Returns the results of one algorithm on the given benchmark"""
+    alpha_results = {}
+    for alpha, result in benchmark.run_alpha_test(algorithm=algorithm, bar=bar).items():
+        alpha_results[alpha] = unpack_results(result)
+    return alpha_results
+
+
+def run_algorithms(benchmark, folder="Results/Benchmarks", bar=None):
+    """Run all the algorithms and saves them in a folder"""
+
+    for algo, name in [(PC,"PC"), (PC_stable,"PC_stable"), (PC_ccs_orientation,"PC_ccs_orientation"), (PC_ccs_skeleton,"PC_ccs_skeleton")]:
+        save(run(benchmark, algorithm=algo, bar=bar), folder+"/save_"+name)
+
+
 def load(filename):
+    """Loads the results from a file"""
     with lzma.open(filename+".lzma", 'rb') as file:
         content = pickle.load(file)
     return content
 
-def run_algorithms(benchmark, folder="Results/Benchmark/"):
-    save(run(benchmark, algorithm=PC), folder+"save_test_PC")
-    save(run(benchmark, algorithm=PC_stable), folder+"save_test_PC_stable")
-    save(run(benchmark, algorithm=PC_ccs_orientation), folder+"save_test_PC_ccs_orientation")
-    save(run(benchmark, algorithm=PC_ccs_skeleton), folder+"save_test_PC_ccs_skeleton")
 
-def load_algorithms(folder="Results/Benchmark/"):
-    return [load(folder+"save_test_"+n) for n in ["PC", "PC_stable", "PC_ccs_orientation", "PC_ccs_skeleton"]]
+def load_algorithms(folder="Results/Benchmarks", name="save"):
+    """Loads the results from all the algorithms"""
+    return {n:load(folder+"/"+name+"_"+n) for n in ["PC", "PC_stable", "PC_ccs_orientation", "PC_ccs_skeleton"]}
 
 
-# a = Benchmark("test", intialize=False)
-# a.load_bns()
-# run_algorithms(a)
+def benchmark_50_nodes_80_arcs(initialize=True):
+    """Runs the default benchmark on all the algorithms"""
+    nb_samples = [100, 500, 1000]
+    benchmark_50_nodes_80_arcs = Benchmark("50_nodes_80_arcs", folder="Results/Benchmarks/50_nodes_80_arcs", nb_samples=nb_samples, nb_networks=100, nb_nodes=50, initialize=initialize)
 
-results_PC, results_PC_stable, results_PC_ccs_orientation, results_PC_ccs_skeleton, = load_algorithms()
+    if initialize is False: benchmark_50_nodes_80_arcs.load_bns()
+    
+    for samples in nb_samples:
+        save_folder = "Results/Benchmarks/50_nodes_80_arcs/results/"+str(samples)
 
-plt.scatter(results_PC_ccs_orientation['recall'], results_PC_ccs_orientation['precision'], color="blue")
-plt.show()
-plt.scatter(results_PC_ccs_skeleton['recall'], results_PC_ccs_skeleton['precision'], color="red")
-plt.show()
+        try:
+            os.mkdir(save_folder)
+        except FileExistsError:
+            pass
+        
+        bar_size = round((benchmark_50_nodes_80_arcs.alpha_max-benchmark_50_nodes_80_arcs.alpha_min)/benchmark_50_nodes_80_arcs.alpha_step)
+        bar = Bar("Running on the alpha values for {} samples".format(str(samples)), max=4*bar_size)
+
+        benchmark_50_nodes_80_arcs.load_samples(samples_folder="sampled_bns/"+str(samples))
+        run_algorithms(benchmark_50_nodes_80_arcs, folder=save_folder, bar=bar)
+
+
+if __name__ == '__main__':
+    benchmark_50_nodes_80_arcs(initialize=False)
+    # load_algorithms(folder="Results/Benchmarks/50_nodes_80_arcs/results/500",)
+    

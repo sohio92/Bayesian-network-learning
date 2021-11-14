@@ -1,13 +1,9 @@
-import json
 import itertools
 
 from pc import PC
 from utils import *
 
-with open("parameters.json", 'r') as file:
-	parameters = json.load(file)["parameters"]
-
-save_folder = parameters["save_folder"]
+save_folder = "Results/PC_stable/"
 
 class PC_stable(PC):
 	"""

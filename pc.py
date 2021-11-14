@@ -1,15 +1,10 @@
-import json
 import pyAgrum as gum
-import pyAgrum.lib.image as gimg
 import pyAgrum.lib.bn_vs_bn as bvb
 
 import itertools
 from utils import *
 
-with open("parameters.json", 'r') as file:
-	parameters = json.load(file)["parameters"]
-
-save_folder = parameters["save_folder"]
+save_folder = "Results/PC/"
 
 class PC():
 	"""
