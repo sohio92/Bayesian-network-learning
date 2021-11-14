@@ -16,7 +16,7 @@ class Benchmark:
     Benchmark to run tests on the implemented algorithms
     """
 
-    def __init__(self, name="Benchmark", folder="Results/Benchmark", verbose=True, nb_networks=100, nb_samples=500, nb_nodes=10, nb_modmax=4, average_degree=1.6, alpha_range=(10e-5, 0.2), alpha_step=10e-3, alpha_default=0.05, intialize=True):
+    def __init__(self, name="Benchmark", folder="Results/Benchmark", verbose=True, nb_networks=1000, nb_samples=500, nb_nodes=10, nb_modmax=4, average_degree=1.6, alpha_range=(10e-5, 0.2), alpha_step=10e-3, alpha_default=0.05, intialize=True):
         self.name, self.folder = name, folder
 
         self.nb_networks, self.nb_samples = nb_networks, nb_samples
@@ -41,23 +41,27 @@ class Benchmark:
         s += "\n\tNodes: {}\tArcs: {}\tValues: {}".format(self.nb_nodes, self.nb_arcs, self.nb_modmax)
         return s 
 
-    def _init_bn(self, verbose=True):
+    def _init_bn(self, show_progess=True):
         """
         Generates all the desired BNs
         """
-        if verbose is True: print("Generating BNs..")
+        if show_progess is True:    bar = Bar("Generating BNs", max=self.nb_networks)
 
         generator = gum.BNGenerator()
-        self.bns = [generator.generate(n_nodes=self.nb_nodes, n_arcs=self.nb_arcs, n_modmax=self.nb_modmax)
-                    for _ in range(self.nb_networks)]
 
-    def _sample_bns(self, verbose=True):
+        self.bns = []
+        for _ in range(self.nb_networks):
+            bar.next()
+            self.bns.append(generator.generate(n_nodes=self.nb_nodes, n_arcs=self.nb_arcs, n_modmax=self.nb_modmax))
+            
+    def _sample_bns(self, show_progress=True):
         """
         Samples all bns
         """
-        if verbose is True: print("Sampling BNs..")
+        if show_progress is True:   bar = Bar("Sampling BNs", max=self.nb_networks)
         
         for i in range(len(self.bns)):
+            bar.next()
             name = self.folder + "/sampled_bns/sampled_bn_" + str(i) + ".csv"
             gum.generateCSV(self.bns[i], name_out=name, n=self.nb_samples, show_progress=False, with_labels=False)
             self.leas.append(gum.BNLearner(name))
@@ -148,11 +152,12 @@ class Benchmark:
 # benchmark_barley = Benchmark("Barley benchmark", nb_nodes=48, average_degree=84/48, nb_modmax=114005)
 
 if __name__ == "__main__":
-    # a = Benchmark("test")
-    # del a
+    a = Benchmark("test")
+    del a
     a = Benchmark("test", intialize=False)
     a.load_bns()
 
-    # times, scores = a.run_test().values()
+    # print(unpack_results(a.run_test()))
 
-    results = a.run_alpha_test(PC_ccs_orientation)
+    # results = a.run_alpha_test(PC_ccs_orientation)
+    
