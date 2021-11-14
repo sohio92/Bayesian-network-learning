@@ -2,6 +2,8 @@ import time
 import lzma
 import pickle
 
+from progress.bar import Bar
+
 from pc import PC
 from pc_stable import PC_stable
 from pc_css_orientation import PC_ccs_orientation
@@ -14,7 +16,7 @@ class Benchmark:
     Benchmark to run tests on the implemented algorithms
     """
 
-    def __init__(self, name="Benchmark", folder="Results/Benchmark", verbose=True, nb_networks=100, nb_samples=500, nb_nodes=10, nb_modmax=4, average_degree=1.6, alpha_range=(10e-5, 0.2), alpha_step=10e-2, alpha_default=0.05, intialize=True):
+    def __init__(self, name="Benchmark", folder="Results/Benchmark", verbose=True, nb_networks=100, nb_samples=500, nb_nodes=10, nb_modmax=4, average_degree=1.6, alpha_range=(10e-5, 0.2), alpha_step=10e-3, alpha_default=0.05, intialize=True):
         self.name, self.folder = name, folder
 
         self.nb_networks, self.nb_samples = nb_networks, nb_samples
@@ -93,13 +95,15 @@ class Benchmark:
         # self.nb_modmax
         self.leas = [gum.BNLearner(folder+"/sampled_bns/sampled_bn_" + str(i) + ".csv") for i in range(len(self.bns))]
 
-    def run_test(self, alpha=None, algorithm=PC):
+    def run_test(self, alpha=None, algorithm=PC, show_progress=True):
         """
         Runs a performance test on a given algorithm
         """
+        if show_progress is True:   bar = Bar("Processing", max=self.nb_networks)
+
         if alpha is None:   alpha = self.alpha_default
         child = algorithm(alpha=alpha, nb_values=self.nb_modmax)
-
+        
         times, scores = [], {"Hamming":[], "Skeleton":[]}
         for i in range(self.nb_networks):
             child.reset({"alpha":alpha})
@@ -117,18 +121,26 @@ class Benchmark:
             scores["Hamming"].append(hamming)
             scores["Skeleton"].append(skeleton)
 
+            if show_progress is True:   bar.next()
+
+        if show_progress is True:   print()
         return {"times":times, "scores":scores}
     
-    def run_alpha_test(self, algorithm=PC):
+    def run_alpha_test(self, algorithm=PC, show_progress=True):
         """
         Runs a performance test for all values of alpha
         """
+        if show_progress is True:   bar = Bar("Processing", max=round((self.alpha_max-self.alpha_min)/self.alpha_step))
+
         results = {}
         a = self.alpha_min
         while a <= self.alpha_max:
-            results[a] = self.run_test(a, algorithm=algorithm)
+            results[a] = self.run_test(alpha=a, algorithm=algorithm, show_progress=False)
             a += self.alpha_step
+
+            if show_progress is True:   bar.next()
         
+        if show_progress is True:   print()
         return results
 
 # benchmark_insurance = Benchmark("Insurance benchmark", nb_nodes=27, average_degree=52/27, nb_modmax=984)
@@ -136,11 +148,11 @@ class Benchmark:
 # benchmark_barley = Benchmark("Barley benchmark", nb_nodes=48, average_degree=84/48, nb_modmax=114005)
 
 if __name__ == "__main__":
-    a = Benchmark("test")
-    del a
+    # a = Benchmark("test")
+    # del a
     a = Benchmark("test", intialize=False)
     a.load_bns()
 
-    times, scores = a.run_test().values()
-    print(sum(times)/len(times))
-    print(scores)
+    # times, scores = a.run_test().values()
+
+    results = a.run_alpha_test(PC_ccs_orientation)
