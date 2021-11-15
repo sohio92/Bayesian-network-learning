@@ -165,7 +165,12 @@ class Benchmark:
         results = {}
         a = self.alpha_min
         while a <= self.alpha_max:
-            results[a] = self.run_test(alpha=a, algorithm=algorithm, show_progress=False)
+            try:
+                results[a] = self.run_test(alpha=a, algorithm=algorithm, show_progress=False)
+            except:
+                # Can throw bad allocation error with PC_ccs_skeleton
+                results[a] = None
+
             a += self.alpha_step
 
             if show_progress is True:   bar.next()

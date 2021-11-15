@@ -55,4 +55,4 @@ if __name__ == "__main__":
 	_, hamming, skeleton_scores = pc_ccs.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))
-	print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs_orientation) * 100, 3)))
+	# print("\nProportion of failed learnings: {}%".format(round(test_robustness(PC_ccs_orientation) * 100, 3)))

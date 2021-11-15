@@ -25,10 +25,9 @@ def run(benchmark, algorithm=PC, bar=None):
     return alpha_results
 
 
-def run_algorithms(benchmark, folder="Results/Benchmarks", bar=None):
+def run_algorithms(benchmark, algorithms, folder="Results/Benchmarks", bar=None):
     """Run all the algorithms and saves them in a folder"""
-
-    for algo, name in [(PC,"PC"), (PC_stable,"PC_stable"), (PC_ccs_orientation,"PC_ccs_orientation"), (PC_ccs_skeleton,"PC_ccs_skeleton")]:
+    for algo, name in algorithms:
         save(run(benchmark, algorithm=algo, bar=bar), folder+"/save_"+name)
 
 
@@ -44,9 +43,9 @@ def load_algorithms(folder="Results/Benchmarks", name="save"):
     return {n:load(folder+"/"+name+"_"+n) for n in ["PC", "PC_stable", "PC_ccs_orientation", "PC_ccs_skeleton"]}
 
 
-def benchmark_50_nodes_80_arcs(initialize=True):
+def benchmark_50_nodes_80_arcs(initialize=True, nb_samples=[100, 500, 1000], algorithms=[(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation"), (PC_ccs_skeleton, "PC_ccs_skeleton")]):
     """Runs the default benchmark on all the algorithms"""
-    nb_samples = [100, 500, 1000]
+
     benchmark_50_nodes_80_arcs = Benchmark("50_nodes_80_arcs", folder="Results/Benchmarks/50_nodes_80_arcs", nb_samples=nb_samples, nb_networks=100, nb_nodes=50, initialize=initialize)
 
     if initialize is False: benchmark_50_nodes_80_arcs.load_bns()
@@ -60,13 +59,16 @@ def benchmark_50_nodes_80_arcs(initialize=True):
             pass
         
         bar_size = round((benchmark_50_nodes_80_arcs.alpha_max-benchmark_50_nodes_80_arcs.alpha_min)/benchmark_50_nodes_80_arcs.alpha_step)
-        bar = Bar("Running on the alpha values for {} samples".format(str(samples)), max=4*bar_size)
+        bar = Bar("Running on the alpha values for {} samples".format(str(samples)), max=len(algorithms)*bar_size)
 
         benchmark_50_nodes_80_arcs.load_samples(samples_folder="sampled_bns/"+str(samples))
-        run_algorithms(benchmark_50_nodes_80_arcs, folder=save_folder, bar=bar)
+        run_algorithms(benchmark_50_nodes_80_arcs, folder=save_folder, bar=bar, algorithms=algorithms)
 
 
 if __name__ == '__main__':
-    benchmark_50_nodes_80_arcs(initialize=False)
+    nb_samples = [100, 500, 1000]
+    algorithms = [(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation")] # No (PC_ccs_skeleton, "PC_ccs_skeleton") because creates crash -> swigpy memory leak !!
+
+    benchmark_50_nodes_80_arcs(initialize=False, nb_samples=nb_samples, algorithms=algorithms)
     # load_algorithms(folder="Results/Benchmarks/50_nodes_80_arcs/results/500",)
     
