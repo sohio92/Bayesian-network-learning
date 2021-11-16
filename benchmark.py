@@ -161,24 +161,35 @@ class Benchmark:
         if show_progress is True:   print()
         return {"times":times, "scores":scores}
     
-    def run_alpha_test(self, algorithm=PC, show_progress=True, bar=None):
+    def run_alpha_test(self, algorithm=PC, show_progress=True, bar=None, alpha_list=None):
         """
         Runs a performance test for all values of alpha
         """
-        if show_progress is True and bar is None:   bar = Bar("Processing", max=round((self.alpha_max-self.alpha_min)/self.alpha_step))
+        if show_progress is True and bar is None:   bar = Bar("Processing", max=round((self.alpha_max-self.alpha_min)/self.alpha_step) if alpha_list is None else len(alpha_list))
 
         results = {}
-        a = self.alpha_min
-        while a <= self.alpha_max:
-            try:
-                results[a] = self.run_test(alpha=a, algorithm=algorithm, show_progress=False)
-            except:
-                # Can throw bad allocation error with PC_ccs_skeleton
-                results[a] = None
 
-            a += self.alpha_step
+        if alpha_list is None:
+            a = self.alpha_min
+            while a <= self.alpha_max:
+                try:
+                    results[a] = self.run_test(alpha=a, algorithm=algorithm, show_progress=False)
+                except:
+                    # Can throw bad allocation error with PC_ccs_skeleton
+                    results[a] = None
 
-            if show_progress is True:   bar.next()
+                a += self.alpha_step
+
+                if show_progress is True:   bar.next()
+        else:
+            for a in alpha_list:
+                try:
+                    results[a] = self.run_test(alpha=a, algorithm=algorithm, show_progress=False)
+                except:
+                    # Can throw bad allocation error with PC_ccs_skeleton
+                    results[a] = None
+
+                if show_progress is True:   bar.next()
         
         if (show_progress is True and bar is None) or bar.remaining <= 5:   print()
         return results

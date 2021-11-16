@@ -62,7 +62,7 @@ class PC():
 							self.graph.eraseEdge(X,Y)
 
 							Sepset_xy[tuple(sorted((X,Y)))].add(Z)
-							break
+	
 			d += 1
 
 		return {"graph":self.graph, "Sepset_xy":Sepset_xy}
