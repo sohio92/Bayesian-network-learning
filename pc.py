@@ -1,6 +1,8 @@
 import pyAgrum as gum
 import pyAgrum.lib.bn_vs_bn as bvb
 
+import random
+
 import itertools
 from utils import *
 
@@ -45,7 +47,11 @@ class PC():
 		d = 0
 		Sepset_xy = {tuple(sorted(xy)):set() for xy in itertools.combinations(self.graph.nodes(), 2)} # Z for every pair X, Y
 		while has_more_neighbours(self.graph, d):
-			for X,Y in self.graph.edges():
+			# Shuffling the edges because PC is order dependant (would get the same results all the time)
+			shuffled_edges = list(self.graph.edges().copy())
+			random.shuffle(shuffled_edges)
+
+			for X,Y in shuffled_edges:
 				adj_X_excl_Y = [neigh for neigh in self.graph.neighbours(X) if neigh != Y]
 
 				if len(adj_X_excl_Y) >= d:
@@ -178,4 +184,4 @@ if __name__ == "__main__":
 	compared_graph, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
 
-	# print("Robustesse : {}%".format(test_robustness(PC, max_tries=100) * 100))
+	#print("Robustesse : {}%".format(test_robustness(PC, max_tries=100) * 100))

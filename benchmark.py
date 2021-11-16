@@ -68,6 +68,11 @@ class Benchmark:
         """
         if show_progress is True:   bar = Bar("Sampling BNs", max=self.nb_networks * len(self.nb_samples))
         
+        try:
+            os.mkdir(self.folder + "/" +samples_folder + "/")
+        except FileExistsError:
+            pass
+
         for s in self.nb_samples:
             try:
                 os.mkdir(self.folder + "/" + samples_folder + "/" + str(s) + "/")
@@ -121,7 +126,7 @@ class Benchmark:
         self.nb_networks = len(self.bns)
         self.nb_nodes = self.bns[0].size()
         self.nb_arcs = self.bns[0].sizeArcs()
-        # self.nb_modmax
+        self.nb_modmax = self.bns[0].maxVarDomainSize()
 
         if samples_folder is not None:  self.load_samples(folder=folder, samples_folder=samples_folder)
 

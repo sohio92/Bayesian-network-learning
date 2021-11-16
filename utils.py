@@ -100,14 +100,14 @@ def consistent_set(graph, X, Y):
     """
     Returns the consistent set given X and Y, the nodes such that there exists a path from X to Y passing through Z
     """
-    other_graph = copy_mixed_graph(graph)
+    other_graph = copy_mixed_graph(graph) # CAN CAUSE CRASH, NEEDS TO BE REPLACED SO IT DOESNT CREATE GRAPHS
     other_graph.eraseNode(X)  # We don't want to go through X twice
 
     consistent_set = set()
     for Z in [neigh for neigh in graph.adjacents(X) if neigh != Y]:
         if len(other_graph.mixedUnorientedPath(Z, Y)) != 0:
             consistent_set.add(Z)
-
+    del other_graph
     return consistent_set
 
 
