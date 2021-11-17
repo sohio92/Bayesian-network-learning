@@ -176,9 +176,10 @@ if __name__ == '__main__':
     # # Strong interactions
     # run_benchmark(initialize=False, name="25_nodes_55_arcs", folder="Results/Benchmarks/25_nodes_55_arcs", nb_nodes=25, average_degree=55/25, nb_modmax=4, algorithms=algorithms, nb_samples=nb_samples, alpha_list=alpha_list)
 
+    ## Plot the results
+
     colors = ("orange", "green", "red", "blue")  # The algorithms' colors
-    # The paths of the results to load
-    benchmarks_paths = ["Results/Benchmarks/25_nodes_40_arcs/results/500"]
+    benchmarks_paths = ["Results/Benchmarks/25_nodes_40_arcs/results/500"] # The paths of the results to load
 
     fig, axs = plt.subplots(len(benchmarks_paths), 2)
     for i, benchmark_path in enumerate(benchmarks_paths):
