@@ -1,3 +1,5 @@
+import itertools
+
 from pc_stable import PC_stable
 from utils import *
 
@@ -96,7 +98,7 @@ if __name__ == "__main__":
 	bn, learner = generate_bn_and_csv(folder=save_folder).values()
 	pc_ccs = PC_ccs_orientation()
 
-	pc_ccs.learn(bn, learner, save_folder=save_folder)
+	pc_ccs.learn(bn, learner, save_folder=save_folder, save_steps=True)
 	_, hamming, skeleton_scores = pc_ccs.compare_learned_to_bn(bn).values()
 
 	print("Hamming: {}\nSkeleton scores: {}\n".format(hamming, skeleton_scores))

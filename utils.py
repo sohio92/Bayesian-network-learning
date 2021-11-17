@@ -1,4 +1,3 @@
-import itertools
 import pickle
 import os
 import lzma
@@ -8,10 +7,13 @@ import numpy as np
 import pydot
 import pydotplus
 import pyAgrum as gum
-import pyAgrum.lib.image as gimg
 
 
 def save_graph(graph, filename, folder):
+    """
+    Saves the image of a graph
+    """
+
     if graph is None:
         return
 
@@ -23,6 +25,9 @@ def save_graph(graph, filename, folder):
 
 
 def save_result(filename, save=True, folder="Results/"):
+    """
+    Decorator to save a method's graph output (no longer used)
+    """
     def decorator(function):
         def inner(*args, **kwargs):
             result = function(*args, **kwargs)
@@ -34,6 +39,10 @@ def save_result(filename, save=True, folder="Results/"):
 
 
 def generate_bn_and_csv(n_nodes=10, n_arcs=12, n_modmax=4, n_data=1000, save_generated=True, folder="Results/", name="sampled_bn.csv"):
+    """
+    Generates a BN and samples it, with the desired parameters
+    """
+
     generator = gum.BNGenerator()
     bn = generator.generate(n_nodes=n_nodes, n_arcs=n_arcs, n_modmax=n_modmax)
 
@@ -46,6 +55,9 @@ def generate_bn_and_csv(n_nodes=10, n_arcs=12, n_modmax=4, n_data=1000, save_gen
 
 
 def is_independant(learner, x, y, z=[], alpha=.05):
+    """
+    Returns true if x and y are independant conditionally to z
+    """
     return learner.chi2("n_"+str(x), "n_"+str(y), ["n_"+str(i) for i in z])[1] > alpha
 
 
@@ -78,6 +90,10 @@ def edge_to_arc(graph, x, y, replace_conflicts=False):
 
 
 def copy_mixed_graph(graph):
+    """
+    Copies a mixed graph
+    """
+
     new_graph = gum.MixedGraph()
 
     for node in graph.nodes():
@@ -93,6 +109,9 @@ def copy_mixed_graph(graph):
 
 
 def get_missing_edges(graph):
+    """
+    Get all the missing edges from a graph, comparative to the complete graph
+    """
     return [edge for edge in make_complete_graph(graph.nodes()).edges() if edge not in graph.edges()]
 
 
@@ -112,6 +131,10 @@ def consistent_set(graph, X, Y):
 
 
 def graph_to_bn(graph, nb_values=2):
+    """
+    Outputs the BN version of an oriented cyclic-less graph
+    """
+
     new_bn = gum.BayesNet()
 
     node_to_var = {}

@@ -72,8 +72,8 @@ def run_benchmark(name="50_nodes_80_arcs", folder="Results/Benchmarks/50_nodes_8
         except FileExistsError:
             pass
         
-        bar_size = round((benchmark.alpha_max-benchmark.alpha_min)/benchmark.alpha_step)
-        bar = Bar("Running on the alpha values for {} samples".format(str(samples)), max=len(algorithms)*bar_size if alpha_list is None else len(algorithms)*len(alpha_list))
+        bar_size = round((benchmark.alpha_max-benchmark.alpha_min)/benchmark.alpha_step) if alpha_list is None else len(alpha_list)
+        bar = Bar("Running on the alpha values for {} samples".format(str(samples)), max=len(algorithms)*bar_size)
 
         benchmark.load_samples(samples_folder="sampled_bns/"+str(samples))
         run_algorithms(benchmark, folder=save_folder, bar=bar, algorithms=algorithms, alpha_list=alpha_list)
@@ -102,7 +102,6 @@ def plot_precision_recall(ax, alpha_results, errors=True, show_label=True, digit
 
             if errors is True:
                 ax.errorbar(recall, precision, xerr=np.std(result["recall"]), yerr=np.std(result["precision"]), color=color, linewidth=.5, capsize=5)
-                
 
             if show_label is True and (i == 0 or i == len(alpha_result)-1):
                 ax.annotate("{:.1e}".format(alpha), (recall, precision), color=color)
@@ -131,7 +130,6 @@ def plot_bar_time_algos(ax, alpha_results, errors=True, show_mean=True, colors=(
         means = []
         for i, (alpha, result) in enumerate(alpha_result.items()):
             width = len(alpha_result)
-            
 
             means.append(np.mean(result["time"]))
             pbar = ax.bar(j*width+i, means[-1], yerr=np.std(result["time"]) if errors is True else 0, align="center", ecolor="black", color=color)
@@ -147,7 +145,6 @@ def plot_bar_time_algos(ax, alpha_results, errors=True, show_mean=True, colors=(
     ax.legend(loc="upper left")
     ax.set_yticks(mean_means + list(range(0, round(max_time) + 50, 25)))
 
-    
     alphas = list(list(alpha_results.values())[0].keys())
     min_alpha, max_alpha = min(alphas), max(alphas)
     x_label = "Algorithms for alpha between {:.1e} and {:.1e}".format(min_alpha, max_alpha)
@@ -158,35 +155,43 @@ def plot_bar_time_algos(ax, alpha_results, errors=True, show_mean=True, colors=(
     
     ax.set_xticks(np.concatenate([[i + j*width for i in range(len(alpha_result))] for j in range(len(alpha_results))]))
     ax.set_xticklabels(alphas * len(alpha_results) if show_alphas is True else ["" for _ in alphas] * len(alpha_results))
-    
+
 
 if __name__ == '__main__':
+    ## The nb of samples, the alphas, and the algorithms to use for the following benchmark
     nb_samples = [100, 500, 1000]
-    alpha_list = [1e-25, 1e-20, 1e-17, 1.0e-15, 1.0e-13, 1.0e-10, 8.7e-09, 7.6e-07, 6.6e-05, 5.7e-03, 5.0e-02, 5.0e-01]
-    algorithms = [(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation")]
+    alpha_list = [1e-25, 1e-20, 1e-17, 1.0e-15, 1.0e-13, 1.0e-10,
+                  8.7e-09, 7.6e-07, 6.6e-05, 5.7e-03, 5.0e-02, 5.0e-01]
+    algorithms = [(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation"), (PC_ccs_skeleton, "PC_ccs_skeleton")]
     #[(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation"), (PC_ccs_skeleton, "PC_ccs_skeleton")]
+
+    ## Run the benchmarks, if initialize is False they will seek previously generated Bayesian Networks in their paths (saves a lot of time)
 
     # # Weak interactions
     # run_benchmark(initialize=False, name="25_nodes_25_arcs", folder="Results/Benchmarks/25_nodes_25_arcs", nb_nodes=25, average_degree=1, nb_modmax=4, algorithms=algorithms, nb_samples=nb_samples, alpha_list=alpha_list)
-
+    
     # # Medium interactions
     # run_benchmark(initialize=False, name="25_nodes_40_arcs", folder="Results/Benchmarks/25_nodes_40_arcs", nb_nodes=25, average_degree=1.6, nb_modmax=4, algorithms=algorithms, nb_samples=nb_samples, alpha_list=alpha_list)
 
     # # Strong interactions
     # run_benchmark(initialize=False, name="25_nodes_55_arcs", folder="Results/Benchmarks/25_nodes_55_arcs", nb_nodes=25, average_degree=55/25, nb_modmax=4, algorithms=algorithms, nb_samples=nb_samples, alpha_list=alpha_list)
 
-    colors = ("orange", "green", "blue", "red")
-    benchmarks_paths = ["Results/Benchmarks/25_nodes_25_arcs/results/1000"]
+    colors = ("orange", "green", "red", "blue")  # The algorithms' colors
+    # The paths of the results to load
+    benchmarks_paths = ["Results/Benchmarks/25_nodes_40_arcs/results/500"]
 
     fig, axs = plt.subplots(len(benchmarks_paths), 2)
     for i, benchmark_path in enumerate(benchmarks_paths):
-        alpha_results = load_algorithms(folder=benchmark_path, algorithms=[a[1] for a in algorithms])
+        alpha_results = load_algorithms(folder=benchmark_path, algorithms=[
+                                        a[1] for a in algorithms])
 
         if len(benchmarks_paths) == 1:
-            plot_precision_recall(axs[0], alpha_results, errors=True, colors=colors)
-            plot_bar_time_algos(axs[1], alpha_results)
+            plot_precision_recall(
+                axs[0], alpha_results, errors=True, colors=colors)
+            plot_bar_time_algos(axs[1], alpha_results, colors=colors)
         else:
-            plot_precision_recall(axs[i, 0], alpha_results, errors=True, colors=colors)
-            plot_bar_time_algos(axs[i, 1], alpha_results)
+            plot_precision_recall(
+                axs[i, 0], alpha_results, errors=True, colors=colors)
+            plot_bar_time_algos(axs[i, 1], alpha_results, colors=colors)
 
     plt.show()

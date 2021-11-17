@@ -39,6 +39,7 @@ class PC_stable(PC):
 							self.graph.eraseEdge(X,Y)
 							Sepset_xy[tuple(sorted((X,Y)))].add(Z)
 
+						# We break the loop if X and Y are no longer neighbours
 						if X not in self.graph.neighbours(Y):
 							break
 			d += 1

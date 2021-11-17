@@ -64,7 +64,7 @@ class Benchmark:
             
     def _sample_bns(self, show_progress=True, samples_folder="sampled_bns"):
         """
-        Samples all bns
+        Samples all BNs
         """
         if show_progress is True:   bar = Bar("Sampling BNs", max=self.nb_networks * len(self.nb_samples))
         
@@ -194,6 +194,7 @@ class Benchmark:
         if (show_progress is True and bar is None) or bar.remaining <= 5:   print()
         return results
 
+## Default benchmarks, too slow to generate
 # benchmark_insurance = Benchmark("Insurance benchmark", folder="Results/Benchmarks/Insurance/", nb_nodes=27, average_degree=52/27, nb_modmax=984)
 # benchmark_hepar2 = Benchmark("Hepar2 benchmark", nb_nodes=70, folder="Results/Benchmarks/Hepar2/", average_degree=123/70, nb_modmax=1453)
 # benchmark_barley = Benchmark("Barley benchmark", nb_nodes=48, folder="Results/Benchmarks/Barley/", average_degree=84/48, nb_modmax=114005)

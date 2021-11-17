@@ -176,10 +176,10 @@ class PC():
 			self.__setattr__(key, value)
 
 if __name__ == "__main__":
-	bn, learner = generate_bn_and_csv(n_data=1000).values()
+	bn, learner = generate_bn_and_csv(n_data=1000, n_nodes=4, n_arcs=4).values()
 
 	pc = PC()
-	pc.learn(bn, learner, save_folder=save_folder)
+	pc.learn(bn, learner, save_folder=save_folder, save_steps=True)
 
 	compared_graph, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
