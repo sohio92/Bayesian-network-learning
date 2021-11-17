@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import os
 
 from progress.bar import Bar
+from pyparsing import col
 
 from pc import PC
 from pc_stable import PC_stable
@@ -156,13 +157,42 @@ def plot_bar_time_algos(ax, alpha_results, errors=True, show_mean=True, colors=(
     ax.set_xticks(np.concatenate([[i + j*width for i in range(len(alpha_result))] for j in range(len(alpha_results))]))
     ax.set_xticklabels(alphas * len(alpha_results) if show_alphas is True else ["" for _ in alphas] * len(alpha_results))
 
+def compare_PC_PC_stable(ax, n_runs=10, alpha=0.05, title="Average fscore and variance for PC and PC_stable for alpha = {}", colors=("orange","green")):
+    """
+    Compares the average f_score and variance for PC and PC_stable at a given alpha.
+    """
+    bn, learner = generate_bn_and_csv(n_data=1000, n_nodes=25, n_arcs=40, save_generated=False).values()
+
+    pc = PC(alpha=alpha)
+    pc_stable = PC_stable(alpha=alpha)
+
+    fscore_pc, fscore_stable = [], []
+    for _ in range(n_runs):
+        pc.learn(bn, learner, verbose=False, save_final=False)
+        pc_stable.learn(bn, learner, verbose=False, save_final=False)
+
+        fscore_pc.append(pc.compare_learned_to_bn(bn, save_comparison=False)["skeletonScores"]["fscore"])
+        fscore_stable.append(pc_stable.compare_learned_to_bn(bn, save_comparison=False)["skeletonScores"]["fscore"])
+
+    ax.yaxis.grid(True)
+    ax.set_yticks(np.arange(0, 1+1, 0.05))
+
+    ax.set_title(title.format(alpha))
+    ax.set_xticks([1, 2])
+    ax.set_xticklabels(["PC", "PC_stable"])
+
+    ax.set_ylabel("Average fscore")
+
+    plt.bar(1, np.mean(fscore_pc), yerr=np.std(fscore_pc), color=colors[0], align="center", ecolor="black")
+    plt.bar(2, np.mean(fscore_stable), yerr=np.std(fscore_stable), color=colors[1], align="center", ecolor="black")
+
 
 if __name__ == '__main__':
     ## The nb of samples, the alphas, and the algorithms to use for the following benchmark
     nb_samples = [100, 500, 1000]
     alpha_list = [1e-25, 1e-20, 1e-17, 1.0e-15, 1.0e-13, 1.0e-10,
                   8.7e-09, 7.6e-07, 6.6e-05, 5.7e-03, 5.0e-02, 5.0e-01]
-    algorithms = [(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation"), (PC_ccs_skeleton, "PC_ccs_skeleton")]
+    algorithms = [(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation")]
     #[(PC, "PC"), (PC_stable, "PC_stable"), (PC_ccs_orientation, "PC_ccs_orientation"), (PC_ccs_skeleton, "PC_ccs_skeleton")]
 
     ## Run the benchmarks, if initialize is False they will seek previously generated Bayesian Networks in their paths (saves a lot of time)
@@ -179,20 +209,22 @@ if __name__ == '__main__':
     ## Plot the results
 
     colors = ("orange", "green", "red", "blue")  # The algorithms' colors
-    benchmarks_paths = ["Results/Benchmarks/25_nodes_40_arcs/results/500"] # The paths of the results to load
+    list_paths = [["Results/Benchmarks/25_nodes_25_arcs/results/100", "Results/Benchmarks/25_nodes_25_arcs/results/500", "Results/Benchmarks/25_nodes_25_arcs/results/1000"], ["Results/Benchmarks/25_nodes_40_arcs/results/100", "Results/Benchmarks/25_nodes_40_arcs/results/500", "Results/Benchmarks/25_nodes_40_arcs/results/1000"], ["Results/Benchmarks/25_nodes_55_arcs/results/100", "Results/Benchmarks/25_nodes_55_arcs/results/500", "Results/Benchmarks/25_nodes_55_arcs/results/1000"]]
 
-    fig, axs = plt.subplots(len(benchmarks_paths), 2)
-    for i, benchmark_path in enumerate(benchmarks_paths):
-        alpha_results = load_algorithms(folder=benchmark_path, algorithms=[
-                                        a[1] for a in algorithms])
+    for benchmarks_paths in list_paths:
+        fig, axs = plt.subplots(len(benchmarks_paths), 2)
+        for i, benchmark_path in enumerate(benchmarks_paths):
+            alpha_results = load_algorithms(folder=benchmark_path, algorithms=[
+                                            a[1] for a in algorithms])
 
-        if len(benchmarks_paths) == 1:
-            plot_precision_recall(
-                axs[0], alpha_results, errors=True, colors=colors)
-            plot_bar_time_algos(axs[1], alpha_results, colors=colors)
-        else:
-            plot_precision_recall(
-                axs[i, 0], alpha_results, errors=True, colors=colors)
-            plot_bar_time_algos(axs[i, 1], alpha_results, colors=colors)
+            if len(benchmarks_paths) == 1:
+                plot_precision_recall(
+                    axs[0], alpha_results, errors=True, colors=colors, show_label=False)
+                plot_bar_time_algos(axs[1], alpha_results, colors=colors)
+            else:
+                plot_precision_recall(
+                    axs[i, 0], alpha_results, errors=True, colors=colors, show_label=False)
+                plot_bar_time_algos(axs[i, 1], alpha_results, colors=colors)
 
-    plt.show()
+        plt.show()
+    

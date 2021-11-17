@@ -62,7 +62,7 @@ class PC():
 							self.graph.eraseEdge(X,Y)
 
 							Sepset_xy[tuple(sorted((X,Y)))].add(Z)
-	
+
 			d += 1
 
 		return {"graph":self.graph, "Sepset_xy":Sepset_xy}
@@ -72,7 +72,7 @@ class PC():
 		Phase 2: orient the skeleton's edges
 		"""
 		if graph is None:	graph = self.graph
-		
+
 		# V-structures
 
 		# Simple way to find unshielded triples:
@@ -176,10 +176,17 @@ class PC():
 			self.__setattr__(key, value)
 
 if __name__ == "__main__":
-	bn, learner = generate_bn_and_csv(n_data=1000, n_nodes=4, n_arcs=4).values()
+	bn, learner = generate_bn_and_csv(n_data=1000, n_nodes=10, n_arcs=16).values()
 
 	pc = PC()
-	pc.learn(bn, learner, save_folder=save_folder, save_steps=True)
+	pc.learn(bn, learner, save_folder=save_folder, save_steps=False)
+
+	# pc._init_graph(bn)
+	# pc.alpha = .5
+	# save_graph(pc._learn_skeleton(learner)["graph"], filename="test_high_alpha.png", folder="")
+	# pc.alpha= 1e-25
+	# save_graph(pc._learn_skeleton(learner)["graph"], filename="test_low_alpha.png", folder="")
+	# save_graph(bn, filename="real.png", folder="")
 
 	compared_graph, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
