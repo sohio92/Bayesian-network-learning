@@ -181,13 +181,6 @@ if __name__ == "__main__":
 	pc = PC()
 	pc.learn(bn, learner, save_folder=save_folder, save_steps=False)
 
-	# pc._init_graph(bn)
-	# pc.alpha = .5
-	# save_graph(pc._learn_skeleton(learner)["graph"], filename="test_high_alpha.png", folder="")
-	# pc.alpha= 1e-25
-	# save_graph(pc._learn_skeleton(learner)["graph"], filename="test_low_alpha.png", folder="")
-	# save_graph(bn, filename="real.png", folder="")
-
 	compared_graph, hamming, skeletonScores = pc.compare_learned_to_bn(bn).values()
 	print("Hamming: {}\nSkeleton scores: {}".format(hamming, skeletonScores))
 
